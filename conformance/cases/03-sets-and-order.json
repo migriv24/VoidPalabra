@@ -1,0 +1,59 @@
+{
+	"kind":	"rune",
+	"about":	"SPEC §4.1 — tags are a SET (sorted, deduplicated); content sequences keep order",
+	"cases":	[{
+			"name":	"tags ab",
+			"in":	{
+				"spirit":	{
+					"id":	"r1",
+					"name":	"n"
+				},
+				"tags":	["a", "b"]
+			},
+			"out":	"59f0bff3178673c8e2e8d8bf8ea7c6b273df4072406c2e02c51eb562d828b107"
+		}, {
+			"name":	"tags ba — must equal tags ab",
+			"in":	{
+				"spirit":	{
+					"id":	"r1",
+					"name":	"n"
+				},
+				"tags":	["b", "a"]
+			},
+			"out":	"59f0bff3178673c8e2e8d8bf8ea7c6b273df4072406c2e02c51eb562d828b107"
+		}, {
+			"name":	"duplicate tag collapses",
+			"in":	{
+				"spirit":	{
+					"id":	"r1",
+					"name":	"n"
+				},
+				"tags":	["a", "a", "b"]
+			},
+			"out":	"59f0bff3178673c8e2e8d8bf8ea7c6b273df4072406c2e02c51eb562d828b107"
+		}, {
+			"name":	"content list xy",
+			"in":	{
+				"spirit":	{
+					"id":	"r1",
+					"name":	"n"
+				},
+				"content":	{
+					"i":	["x", "y"]
+				}
+			},
+			"out":	"8ffe92cf5b8f9ba71101c3cd3f7163d2151842d53f1cc215a5afa07de7d3c1cb"
+		}, {
+			"name":	"content list yx — must DIFFER",
+			"in":	{
+				"spirit":	{
+					"id":	"r1",
+					"name":	"n"
+				},
+				"content":	{
+					"i":	["y", "x"]
+				}
+			},
+			"out":	"9f5917e29c73aa0494612a7fb4b025dc8bea77ab17191b8be484241719443583"
+		}]
+}

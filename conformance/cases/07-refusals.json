@@ -1,0 +1,50 @@
+{
+	"kind":	"slice",
+	"about":	"SPEC §2.1, §4.1–4.4 — input with no honest byte form MUST be refused",
+	"cases":	[{
+			"name":	"rune without spirit.id",
+			"in":	{
+				"mantles":	[{
+						"id":	"m",
+						"name":	"d",
+						"runes":	[{
+							}]
+					}]
+			},
+			"out":	"refused"
+		}, {
+			"name":	"rune with empty spirit.id",
+			"in":	{
+				"mantles":	[{
+						"id":	"m",
+						"name":	"d",
+						"runes":	[{
+								"spirit":	{
+									"id":	""
+								}
+							}]
+					}]
+			},
+			"out":	"refused"
+		}, {
+			"name":	"mantle without name",
+			"in":	{
+				"mantles":	[{
+						"id":	"m"
+					}]
+			},
+			"out":	"refused"
+		}, {
+			"name":	"duplicate mantle names",
+			"in":	{
+				"mantles":	[{
+						"id":	"a",
+						"name":	"dup"
+					}, {
+						"id":	"b",
+						"name":	"dup"
+					}]
+			},
+			"out":	"refused"
+		}]
+}

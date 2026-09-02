@@ -1,0 +1,236 @@
+{
+	"kind":	"linear",
+	"about":	"§8.4 — the linear extension: one reading of a partial order, made a function of the graph by a canonical tiebreak",
+	"cases":	[{
+			"name":	"a diamond, delivered in dependency order",
+			"in":	[{
+					"hash":	"u:1c883a439d5db6bd2212ab862636b5e01dffb900fcb8ca7ecc738aab002fa13d",
+					"parents":	[],
+					"command":	"rune new text shared",
+					"verb":	"rune",
+					"who":	"ada",
+					"minted":	["rune_s"],
+					"group":	null,
+					"seq":	1
+				}, {
+					"hash":	"u:2e1a93018c8d585e1b84b0249092c98bf456ac644e0a98b3523ddc70819a4992",
+					"parents":	["u:1c883a439d5db6bd2212ab862636b5e01dffb900fcb8ca7ecc738aab002fa13d"],
+					"command":	"tag shared +ada",
+					"verb":	"tag",
+					"who":	"ada",
+					"minted":	[],
+					"group":	null,
+					"seq":	2
+				}, {
+					"hash":	"u:87b0630a414c4c21bf78c682d795edc8b42e0a886b9f8e024d52bc3437406f1c",
+					"parents":	["u:1c883a439d5db6bd2212ab862636b5e01dffb900fcb8ca7ecc738aab002fa13d"],
+					"command":	"tag shared +grace",
+					"verb":	"tag",
+					"who":	"grace",
+					"minted":	[],
+					"group":	null,
+					"seq":	2
+				}, {
+					"hash":	"u:ba15560af82f0ad80eeeb3bb709213ca16142bcfb1dcd5a355710e2c4815d6eb",
+					"parents":	["u:2e1a93018c8d585e1b84b0249092c98bf456ac644e0a98b3523ddc70819a4992", "u:87b0630a414c4c21bf78c682d795edc8b42e0a886b9f8e024d52bc3437406f1c"],
+					"command":	"tag shared +both",
+					"verb":	"tag",
+					"who":	"ada",
+					"minted":	[],
+					"group":	null,
+					"seq":	3
+				}, {
+					"hash":	"u:49f9baf47697e94dd4862f63ddf2233f9adb6dd074093d704235310f8e5e1f27",
+					"parents":	["u:ba15560af82f0ad80eeeb3bb709213ca16142bcfb1dcd5a355710e2c4815d6eb"],
+					"command":	"rune new text after",
+					"verb":	"rune",
+					"who":	"ada",
+					"minted":	["rune_t"],
+					"group":	null,
+					"seq":	4
+				}],
+			"out":	"1c883a43 2e1a9301 87b0630a ba15560a 49f9baf4"
+		}, {
+			"name":	"the same diamond, delivered reversed — must equal",
+			"in":	[{
+					"hash":	"u:49f9baf47697e94dd4862f63ddf2233f9adb6dd074093d704235310f8e5e1f27",
+					"parents":	["u:ba15560af82f0ad80eeeb3bb709213ca16142bcfb1dcd5a355710e2c4815d6eb"],
+					"command":	"rune new text after",
+					"verb":	"rune",
+					"who":	"ada",
+					"minted":	["rune_t"],
+					"group":	null,
+					"seq":	4
+				}, {
+					"hash":	"u:ba15560af82f0ad80eeeb3bb709213ca16142bcfb1dcd5a355710e2c4815d6eb",
+					"parents":	["u:2e1a93018c8d585e1b84b0249092c98bf456ac644e0a98b3523ddc70819a4992", "u:87b0630a414c4c21bf78c682d795edc8b42e0a886b9f8e024d52bc3437406f1c"],
+					"command":	"tag shared +both",
+					"verb":	"tag",
+					"who":	"ada",
+					"minted":	[],
+					"group":	null,
+					"seq":	3
+				}, {
+					"hash":	"u:87b0630a414c4c21bf78c682d795edc8b42e0a886b9f8e024d52bc3437406f1c",
+					"parents":	["u:1c883a439d5db6bd2212ab862636b5e01dffb900fcb8ca7ecc738aab002fa13d"],
+					"command":	"tag shared +grace",
+					"verb":	"tag",
+					"who":	"grace",
+					"minted":	[],
+					"group":	null,
+					"seq":	2
+				}, {
+					"hash":	"u:2e1a93018c8d585e1b84b0249092c98bf456ac644e0a98b3523ddc70819a4992",
+					"parents":	["u:1c883a439d5db6bd2212ab862636b5e01dffb900fcb8ca7ecc738aab002fa13d"],
+					"command":	"tag shared +ada",
+					"verb":	"tag",
+					"who":	"ada",
+					"minted":	[],
+					"group":	null,
+					"seq":	2
+				}, {
+					"hash":	"u:1c883a439d5db6bd2212ab862636b5e01dffb900fcb8ca7ecc738aab002fa13d",
+					"parents":	[],
+					"command":	"rune new text shared",
+					"verb":	"rune",
+					"who":	"ada",
+					"minted":	["rune_s"],
+					"group":	null,
+					"seq":	1
+				}],
+			"out":	"1c883a43 2e1a9301 87b0630a ba15560a 49f9baf4"
+		}, {
+			"name":	"the same diamond, shuffled — must equal",
+			"in":	[{
+					"hash":	"u:49f9baf47697e94dd4862f63ddf2233f9adb6dd074093d704235310f8e5e1f27",
+					"parents":	["u:ba15560af82f0ad80eeeb3bb709213ca16142bcfb1dcd5a355710e2c4815d6eb"],
+					"command":	"rune new text after",
+					"verb":	"rune",
+					"who":	"ada",
+					"minted":	["rune_t"],
+					"group":	null,
+					"seq":	4
+				}, {
+					"hash":	"u:ba15560af82f0ad80eeeb3bb709213ca16142bcfb1dcd5a355710e2c4815d6eb",
+					"parents":	["u:2e1a93018c8d585e1b84b0249092c98bf456ac644e0a98b3523ddc70819a4992", "u:87b0630a414c4c21bf78c682d795edc8b42e0a886b9f8e024d52bc3437406f1c"],
+					"command":	"tag shared +both",
+					"verb":	"tag",
+					"who":	"ada",
+					"minted":	[],
+					"group":	null,
+					"seq":	3
+				}, {
+					"hash":	"u:1c883a439d5db6bd2212ab862636b5e01dffb900fcb8ca7ecc738aab002fa13d",
+					"parents":	[],
+					"command":	"rune new text shared",
+					"verb":	"rune",
+					"who":	"ada",
+					"minted":	["rune_s"],
+					"group":	null,
+					"seq":	1
+				}, {
+					"hash":	"u:87b0630a414c4c21bf78c682d795edc8b42e0a886b9f8e024d52bc3437406f1c",
+					"parents":	["u:1c883a439d5db6bd2212ab862636b5e01dffb900fcb8ca7ecc738aab002fa13d"],
+					"command":	"tag shared +grace",
+					"verb":	"tag",
+					"who":	"grace",
+					"minted":	[],
+					"group":	null,
+					"seq":	2
+				}, {
+					"hash":	"u:2e1a93018c8d585e1b84b0249092c98bf456ac644e0a98b3523ddc70819a4992",
+					"parents":	["u:1c883a439d5db6bd2212ab862636b5e01dffb900fcb8ca7ecc738aab002fa13d"],
+					"command":	"tag shared +ada",
+					"verb":	"tag",
+					"who":	"ada",
+					"minted":	[],
+					"group":	null,
+					"seq":	2
+				}],
+			"out":	"1c883a43 2e1a9301 87b0630a ba15560a 49f9baf4"
+		}, {
+			"name":	"a chain, delivered out of order — must DIFFER",
+			"in":	[{
+					"hash":	"u:037ed7cbc0e0998e7ce42cb247d96e84e3ab6c56b4059c5f477788d395febae6",
+					"parents":	["u:fd62fb2253fdca6723373925d0cc51b5d5df6224069ae950ed6f031eb04b7945"],
+					"command":	"rune new text c",
+					"verb":	"rune",
+					"who":	null,
+					"minted":	["rune_c"],
+					"group":	null,
+					"seq":	3
+				}, {
+					"hash":	"u:0a930f40394d2b8c99295fa996326d060c5f6fdfcd92df8ebf1db9797ab2da16",
+					"parents":	[],
+					"command":	"rune new text a",
+					"verb":	"rune",
+					"who":	null,
+					"minted":	["rune_a"],
+					"group":	null,
+					"seq":	1
+				}, {
+					"hash":	"u:fd62fb2253fdca6723373925d0cc51b5d5df6224069ae950ed6f031eb04b7945",
+					"parents":	["u:0a930f40394d2b8c99295fa996326d060c5f6fdfcd92df8ebf1db9797ab2da16"],
+					"command":	"rune new text b",
+					"verb":	"rune",
+					"who":	null,
+					"minted":	["rune_b"],
+					"group":	null,
+					"seq":	2
+				}],
+			"out":	"0a930f40 fd62fb22 037ed7cb"
+		}, {
+			"name":	"two roots that never met — must DIFFER",
+			"in":	[{
+					"hash":	"u:605de916f7f91dd75bd3e47a7680e0315f52dcd264315495b0ca75450cb87376",
+					"parents":	[],
+					"command":	"rune new text two",
+					"verb":	"rune",
+					"who":	"grace",
+					"minted":	["rune_2"],
+					"group":	null,
+					"seq":	1
+				}, {
+					"hash":	"u:c85e808c32c244aabfec93a278719e23f38e52d207a3a15446f74b9d095ef188",
+					"parents":	[],
+					"command":	"rune new text one",
+					"verb":	"rune",
+					"who":	"ada",
+					"minted":	["rune_1"],
+					"group":	null,
+					"seq":	1
+				}],
+			"out":	"605de916 c85e808c"
+		}, {
+			"name":	"a delivery missing the middle — must DIFFER (incomplete)",
+			"in":	[{
+					"hash":	"u:1c883a439d5db6bd2212ab862636b5e01dffb900fcb8ca7ecc738aab002fa13d",
+					"parents":	[],
+					"command":	"rune new text shared",
+					"verb":	"rune",
+					"who":	"ada",
+					"minted":	["rune_s"],
+					"group":	null,
+					"seq":	1
+				}, {
+					"hash":	"u:ba15560af82f0ad80eeeb3bb709213ca16142bcfb1dcd5a355710e2c4815d6eb",
+					"parents":	["u:2e1a93018c8d585e1b84b0249092c98bf456ac644e0a98b3523ddc70819a4992", "u:87b0630a414c4c21bf78c682d795edc8b42e0a886b9f8e024d52bc3437406f1c"],
+					"command":	"tag shared +both",
+					"verb":	"tag",
+					"who":	"ada",
+					"minted":	[],
+					"group":	null,
+					"seq":	3
+				}, {
+					"hash":	"u:49f9baf47697e94dd4862f63ddf2233f9adb6dd074093d704235310f8e5e1f27",
+					"parents":	["u:ba15560af82f0ad80eeeb3bb709213ca16142bcfb1dcd5a355710e2c4815d6eb"],
+					"command":	"rune new text after",
+					"verb":	"rune",
+					"who":	"ada",
+					"minted":	["rune_t"],
+					"group":	null,
+					"seq":	4
+				}],
+			"out":	"incomplete"
+		}]
+}

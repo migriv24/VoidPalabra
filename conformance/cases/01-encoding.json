@@ -1,0 +1,74 @@
+{
+	"kind":	"encode",
+	"about":	"SPEC §2 — the tagged, length-prefixed encoding of each type",
+	"cases":	[{
+			"name":	"null",
+			"in":	null,
+			"out":	"00"
+		}, {
+			"name":	"false",
+			"in":	false,
+			"out":	"01"
+		}, {
+			"name":	"true",
+			"in":	true,
+			"out":	"02"
+		}, {
+			"name":	"zero",
+			"in":	0,
+			"out":	"0300"
+		}, {
+			"name":	"one",
+			"in":	1,
+			"out":	"0302"
+		}, {
+			"name":	"negative",
+			"in":	-1,
+			"out":	"0301"
+		}, {
+			"name":	"large int",
+			"in":	1234567890,
+			"out":	"03a48bb09909"
+		}, {
+			"name":	"empty string",
+			"in":	"",
+			"out":	"0500"
+		}, {
+			"name":	"ascii string",
+			"in":	"rune",
+			"out":	"050472756e65"
+		}, {
+			"name":	"utf8 string",
+			"in":	"café",
+			"out":	"0505636166c3a9"
+		}, {
+			"name":	"emoji",
+			"in":	"🜁",
+			"out":	"0504f09f9c81"
+		}, {
+			"name":	"empty array",
+			"in":	[],
+			"out":	"0700"
+		}, {
+			"name":	"empty object",
+			"in":	{
+			},
+			"out":	"0800"
+		}, {
+			"name":	"array keeps order",
+			"in":	["a", "b"],
+			"out":	"0702050161050162"
+		}, {
+			"name":	"array reversed differs",
+			"in":	["b", "a"],
+			"out":	"0702050162050161"
+		}, {
+			"name":	"nested",
+			"in":	{
+				"k":	[1, {
+						"j":	null
+					}]
+			},
+			"out":	"080105016b07020302080105016a00"
+		}]
+}

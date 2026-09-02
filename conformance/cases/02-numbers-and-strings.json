@@ -1,0 +1,53 @@
+{
+	"kind":	"encode",
+	"about":	"SPEC §2.1–2.2 — the int/float fold and length-prefixed strings",
+	"cases":	[{
+			"name":	"1 as int",
+			"in":	1,
+			"out":	"0302"
+		}, {
+			"name":	"1.0 folds to int",
+			"in":	1,
+			"out":	"0302"
+		}, {
+			"name":	"-0.0 folds to zero",
+			"in":	0,
+			"out":	"0300"
+		}, {
+			"name":	"0 as int",
+			"in":	0,
+			"out":	"0300"
+		}, {
+			"name":	"1.5 stays float",
+			"in":	1.5,
+			"out":	"043ff8000000000000"
+		}, {
+			"name":	"half",
+			"in":	0.5,
+			"out":	"043fe0000000000000"
+		}, {
+			"name":	"big integral float",
+			"in":	1e+15,
+			"out":	"038080b4ccd4dfc603"
+		}, {
+			"name":	"boundaries: ab,c",
+			"in":	["ab", "c"],
+			"out":	"070205026162050163"
+		}, {
+			"name":	"boundaries: a,bc",
+			"in":	["a", "bc"],
+			"out":	"070205016105026263"
+		}, {
+			"name":	"string vs number 1",
+			"in":	"1",
+			"out":	"050131"
+		}, {
+			"name":	"quote in string",
+			"in":	"say \"hi\"",
+			"out":	"05087361792022686922"
+		}, {
+			"name":	"backslash in string",
+			"in":	"a\b",
+			"out":	"05026108"
+		}]
+}

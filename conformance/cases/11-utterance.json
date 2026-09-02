@@ -1,0 +1,208 @@
+{
+	"kind":	"utterance",
+	"about":	"§8.2 — the content address of an utterance: what moves it and what must not",
+	"cases":	[{
+			"name":	"baseline",
+			"in":	{
+				"command":	"rune new text title",
+				"verb":	"rune",
+				"who":	"ada",
+				"group":	null,
+				"parents":	["u:aaa", "u:bbb"],
+				"minted":	["rune_9f2c"],
+				"seq":	1
+			},
+			"out":	"u:04dd26283eba9ef5a1a4fd0d6373d8b882de699194a70602c3cbf27f87fad539"
+		}, {
+			"name":	"parents reordered — must equal baseline",
+			"in":	{
+				"command":	"rune new text title",
+				"verb":	"rune",
+				"who":	"ada",
+				"group":	null,
+				"parents":	["u:bbb", "u:aaa"],
+				"minted":	["rune_9f2c"],
+				"seq":	1
+			},
+			"out":	"u:04dd26283eba9ef5a1a4fd0d6373d8b882de699194a70602c3cbf27f87fad539"
+		}, {
+			"name":	"a repeated parent — must equal",
+			"in":	{
+				"command":	"rune new text title",
+				"verb":	"rune",
+				"who":	"ada",
+				"group":	null,
+				"parents":	["u:bbb", "u:aaa", "u:bbb"],
+				"minted":	["rune_9f2c"],
+				"seq":	1
+			},
+			"out":	"u:04dd26283eba9ef5a1a4fd0d6373d8b882de699194a70602c3cbf27f87fad539"
+		}, {
+			"name":	"seq changed from 1 to 9999 — must equal",
+			"in":	{
+				"command":	"rune new text title",
+				"verb":	"rune",
+				"who":	"ada",
+				"group":	null,
+				"parents":	["u:aaa", "u:bbb"],
+				"minted":	["rune_9f2c"],
+				"seq":	9999
+			},
+			"out":	"u:04dd26283eba9ef5a1a4fd0d6373d8b882de699194a70602c3cbf27f87fad539"
+		}, {
+			"name":	"seq absent entirely — must equal",
+			"in":	{
+				"command":	"rune new text title",
+				"verb":	"rune",
+				"who":	"ada",
+				"group":	null,
+				"parents":	["u:aaa", "u:bbb"],
+				"minted":	["rune_9f2c"]
+			},
+			"out":	"u:04dd26283eba9ef5a1a4fd0d6373d8b882de699194a70602c3cbf27f87fad539"
+		}, {
+			"name":	"two minted ids, listed one way",
+			"in":	{
+				"command":	"batch",
+				"verb":	"batch",
+				"who":	null,
+				"group":	null,
+				"parents":	[],
+				"minted":	["rune_z", "rune_a"],
+				"seq":	4
+			},
+			"out":	"u:b9000d3a9e1dbbc2529ebdd23f317b383f2a285c013f8debf779a2bb05fb772e"
+		}, {
+			"name":	"the same two, listed the other way — must equal",
+			"in":	{
+				"command":	"batch",
+				"verb":	"batch",
+				"who":	null,
+				"group":	null,
+				"parents":	[],
+				"minted":	["rune_a", "rune_z"],
+				"seq":	4
+			},
+			"out":	"u:b9000d3a9e1dbbc2529ebdd23f317b383f2a285c013f8debf779a2bb05fb772e"
+		}, {
+			"name":	"a different command — must DIFFER",
+			"in":	{
+				"command":	"rune new text body",
+				"verb":	"rune",
+				"who":	"ada",
+				"group":	null,
+				"parents":	["u:aaa", "u:bbb"],
+				"minted":	["rune_9f2c"],
+				"seq":	1
+			},
+			"out":	"u:f6cf0f7fa86bf374e124930499585fe3f2097b2ebf31c3e0a02b2bfda12d2c87"
+		}, {
+			"name":	"a different parent set — must DIFFER",
+			"in":	{
+				"command":	"rune new text body",
+				"verb":	"rune",
+				"who":	"ada",
+				"group":	null,
+				"parents":	["u:aaa"],
+				"minted":	["rune_9f2c"],
+				"seq":	1
+			},
+			"out":	"u:19e7f2075c551913569a5504a141cdfdfb7053da36c3c64dbc500b6fc50d973e"
+		}, {
+			"name":	"a different minted id — must DIFFER",
+			"in":	{
+				"command":	"rune new text body",
+				"verb":	"rune",
+				"who":	"ada",
+				"group":	null,
+				"parents":	["u:aaa"],
+				"minted":	["rune_0000"],
+				"seq":	1
+			},
+			"out":	"u:2c0c1739ff959f6431cfb5b0d322796527a7c922d16c9c0d95885b3ce0212e76"
+		}, {
+			"name":	"attributed to ada",
+			"in":	{
+				"command":	"tag title +draft",
+				"verb":	"tag",
+				"who":	"ada",
+				"group":	null,
+				"parents":	[],
+				"minted":	[],
+				"seq":	2
+			},
+			"out":	"u:993a27b0fb295ac1fac2811d54405f4492fcddb67250d2f60d8d3fe4e244b22b"
+		}, {
+			"name":	"attributed to grace — must DIFFER",
+			"in":	{
+				"command":	"tag title +draft",
+				"verb":	"tag",
+				"who":	"grace",
+				"group":	null,
+				"parents":	[],
+				"minted":	[],
+				"seq":	2
+			},
+			"out":	"u:494bf326ce7db3a84f9035efa1cd2a02078536f4b10cf641b1f449968f516c12"
+		}, {
+			"name":	"unattributed (who null) — must DIFFER",
+			"in":	{
+				"command":	"tag title +draft",
+				"verb":	"tag",
+				"who":	null,
+				"group":	null,
+				"parents":	[],
+				"minted":	[],
+				"seq":	2
+			},
+			"out":	"u:b3f002a610b4a89c71383674eedbf0e59f8b2cdae325b1842a121e1ce5d91c53"
+		}, {
+			"name":	"attributed to the empty actor — must DIFFER from unattributed",
+			"in":	{
+				"command":	"tag title +draft",
+				"verb":	"tag",
+				"who":	"",
+				"group":	null,
+				"parents":	[],
+				"minted":	[],
+				"seq":	2
+			},
+			"out":	"u:4399f5334ebf8a51c61765e1919091101155206c40622991d0b168c913af7f46"
+		}, {
+			"name":	"grouped — must DIFFER",
+			"in":	{
+				"command":	"tag title +draft",
+				"verb":	"tag",
+				"who":	"",
+				"group":	"session-1",
+				"parents":	[],
+				"minted":	[],
+				"seq":	2
+			},
+			"out":	"u:b8c9c1b6252f498c9ea50b270352dfca5fd5ae05096074a14f1be098087857c0"
+		}, {
+			"name":	"the same verb, a different canonical line — must DIFFER",
+			"in":	{
+				"command":	"rune rm title",
+				"verb":	"rune",
+				"who":	null,
+				"group":	null,
+				"parents":	[],
+				"minted":	[],
+				"seq":	3
+			},
+			"out":	"u:05c05d4e01f2f49d67da2c804ab848fd3d1578be6890f476d9e5f7ead46f2117"
+		}, {
+			"name":	"an alias desugars to the canonical line — must equal",
+			"in":	{
+				"command":	"rune rm title",
+				"verb":	"rune",
+				"who":	null,
+				"group":	null,
+				"parents":	[],
+				"minted":	[],
+				"seq":	88
+			},
+			"out":	"u:05c05d4e01f2f49d67da2c804ab848fd3d1578be6890f476d9e5f7ead46f2117"
+		}]
+}

@@ -1,0 +1,133 @@
+{
+	"kind":	"conflicts",
+	"about":	"SPEC §5.3 — a conflict is a value with a content address",
+	"cases":	[{
+			"name":	"no conflict on disjoint creation",
+			"in":	[{
+					"mantles":	[{
+							"id":	"m",
+							"name":	"d",
+							"runes":	[{
+									"spirit":	{
+										"id":	"r1",
+										"name":	"a"
+									},
+									"content":	{
+										"v":	"from-a"
+									}
+								}]
+						}]
+				}, {
+					"mantles":	[{
+							"id":	"m",
+							"name":	"d",
+							"runes":	[{
+									"spirit":	{
+										"id":	"r2",
+										"name":	"b"
+									},
+									"content":	{
+										"v":	"from-b"
+									}
+								}]
+						}]
+				}],
+			"out":	"none"
+		}, {
+			"name":	"no conflict on identical writes",
+			"in":	[{
+					"mantles":	[{
+							"id":	"m",
+							"name":	"d",
+							"runes":	[{
+									"spirit":	{
+										"id":	"r1",
+										"name":	"a"
+									},
+									"content":	{
+										"v":	"same"
+									}
+								}]
+						}]
+				}, {
+					"mantles":	[{
+							"id":	"m",
+							"name":	"d",
+							"runes":	[{
+									"spirit":	{
+										"id":	"r1",
+										"name":	"a"
+									},
+									"content":	{
+										"v":	"same"
+									}
+								}]
+						}]
+				}],
+			"out":	"none"
+		}, {
+			"name":	"one conflict on divergent field",
+			"in":	[{
+					"mantles":	[{
+							"id":	"m",
+							"name":	"d",
+							"runes":	[{
+									"spirit":	{
+										"id":	"r1",
+										"name":	"a"
+									},
+									"content":	{
+										"v":	"same"
+									}
+								}]
+						}]
+				}, {
+					"mantles":	[{
+							"id":	"m",
+							"name":	"d",
+							"runes":	[{
+									"spirit":	{
+										"id":	"r1",
+										"name":	"a"
+									},
+									"content":	{
+										"v":	"other"
+									}
+								}]
+						}]
+				}],
+			"out":	"d4df189c974622a916b8ea390f567be1d007575b1b7f9040bff475681c60f591"
+		}, {
+			"name":	"conflict name is order-independent",
+			"in":	[{
+					"mantles":	[{
+							"id":	"m",
+							"name":	"d",
+							"runes":	[{
+									"spirit":	{
+										"id":	"r1",
+										"name":	"a"
+									},
+									"content":	{
+										"v":	"other"
+									}
+								}]
+						}]
+				}, {
+					"mantles":	[{
+							"id":	"m",
+							"name":	"d",
+							"runes":	[{
+									"spirit":	{
+										"id":	"r1",
+										"name":	"a"
+									},
+									"content":	{
+										"v":	"same"
+									}
+								}]
+						}]
+				}],
+			"out":	"d4df189c974622a916b8ea390f567be1d007575b1b7f9040bff475681c60f591"
+		}]
+}

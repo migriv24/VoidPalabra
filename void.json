@@ -1,0 +1,43 @@
+{
+  "manifest": "void/0.1",
+  "name": "voidpalabra",
+  "display_name": "Void Palabra",
+  "kind": "runtime",
+  "version": "0.1.0",
+  "license": "MIT",
+  "repository": "https://github.com/migriv24/VoidPalabra",
+  "description": "The system layer for Void Core: canonical bytes and a name for any state, a CRDT merge law, content-addressed storage, and a partial-order history of change.",
+
+  "requires": [],
+
+  "interacts_with": [
+    {
+      "name": "voidcore",
+      "kind": "runtime",
+      "seam": "state document + command journal",
+      "direction": "inbound",
+      "note": "Palabra names, merges and versions Void Core state documents and ingests its SPEC 6.2 journal export — but does NOT link Void Core, and no sibling needs to be present to build or test this repo. The seam is JSON on both sides. Palabra owns none of Core's vocabulary; it defines only what it takes to remember, name, merge, store and transmit it."
+    },
+    {
+      "name": "voidhormiga",
+      "kind": "application",
+      "seam": "miga bundle",
+      "direction": "inbound",
+      "note": "import_miga reads Void Hormiga's .miga v3 bundle into an Archive, one way and deliberately so. Hormiga is also this library's first consumer, compiling src/ directly via VOIDPALABRA_ROOT — that direction is recorded in Hormiga's own manifest, not here."
+    }
+  ],
+
+  "provides": {
+    "documents": {
+      "archive": "VPAL container - the index plus every content-addressed block; no file extension is mandated, the caller names the file",
+      "history": "palabra_history JSON - utterances and their parent relation, self-verifying on load"
+    }
+  },
+
+  "platforms": ["windows-x64"],
+
+  "update": {
+    "channel": "desktop",
+    "side_by_side": true
+  }
+}

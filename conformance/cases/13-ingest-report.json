@@ -1,0 +1,185 @@
+{
+	"kind":	"ingest_report",
+	"about":	"§8.3 — what was refused, and why. A gap you cannot see is worse than an entry you must step over",
+	"cases":	[{
+			"name":	"nothing refused",
+			"in":	[{
+					"seq":	1,
+					"command":	"rune new text title",
+					"verb":	"rune",
+					"who":	"ada",
+					"pure":	true,
+					"slice":	"undo",
+					"minted":	["rune_aaa"]
+				}],
+			"out":	"1 recorded"
+		}, {
+			"name":	"a save is reported as effectful",
+			"in":	[{
+					"seq":	1,
+					"command":	"rune new text title",
+					"verb":	"rune",
+					"who":	"ada",
+					"pure":	true,
+					"slice":	"undo",
+					"minted":	["rune_aaa"]
+				}, {
+					"seq":	2,
+					"command":	"save",
+					"verb":	"save",
+					"who":	"ada",
+					"pure":	false,
+					"slice":	"host",
+					"minted":	[]
+				}],
+			"out":	"1 recorded; effectful save"
+		}, {
+			"name":	"a save is effectful, not host — purity is the rule with authority",
+			"in":	[{
+					"seq":	1,
+					"command":	"save",
+					"verb":	"save",
+					"who":	null,
+					"pure":	false,
+					"slice":	"host",
+					"minted":	[]
+				}],
+			"out":	"0 recorded; effectful save"
+		}, {
+			"name":	"a pure host-slice command is reported as host",
+			"in":	[{
+					"seq":	1,
+					"command":	"journal on",
+					"verb":	"journal",
+					"who":	null,
+					"pure":	true,
+					"slice":	"host",
+					"minted":	[]
+				}],
+			"out":	"0 recorded; host journal"
+		}, {
+			"name":	"a view mutation is reported as view",
+			"in":	[{
+					"seq":	1,
+					"command":	"place title 10 20",
+					"verb":	"place",
+					"who":	null,
+					"pure":	true,
+					"slice":	"view",
+					"minted":	[]
+				}],
+			"out":	"0 recorded; view place"
+		}, {
+			"name":	"the full holiday-boundary list: save, deploy, build, preview, effect",
+			"in":	[{
+					"seq":	1,
+					"command":	"save",
+					"verb":	"save",
+					"who":	null,
+					"pure":	false,
+					"slice":	"host",
+					"minted":	[]
+				}, {
+					"seq":	2,
+					"command":	"deploy site",
+					"verb":	"deploy",
+					"who":	null,
+					"pure":	false,
+					"slice":	"host",
+					"minted":	[]
+				}, {
+					"seq":	3,
+					"command":	"build site",
+					"verb":	"build",
+					"who":	null,
+					"pure":	false,
+					"slice":	"host",
+					"minted":	[]
+				}, {
+					"seq":	4,
+					"command":	"preview site",
+					"verb":	"preview",
+					"who":	null,
+					"pure":	false,
+					"slice":	"host",
+					"minted":	[]
+				}, {
+					"seq":	5,
+					"command":	"effect notify hello",
+					"verb":	"effect",
+					"who":	null,
+					"pure":	false,
+					"slice":	"host",
+					"minted":	[]
+				}],
+			"out":	"0 recorded; effectful save; effectful deploy; effectful build; effectful preview; effectful effect"
+		}, {
+			"name":	"a batch that reached the host is effectful — observation upgrades, never downgrades",
+			"in":	[{
+					"seq":	1,
+					"command":	"batch rune new text a ; deploy site",
+					"verb":	"batch",
+					"who":	null,
+					"pure":	false,
+					"slice":	"undo",
+					"minted":	["rune_a"]
+				}],
+			"out":	"0 recorded; effectful batch"
+		}, {
+			"name":	"a batch that did not is pure, and records once",
+			"in":	[{
+					"seq":	1,
+					"command":	"batch rune new text a ; rune new text b",
+					"verb":	"batch",
+					"who":	null,
+					"pure":	true,
+					"slice":	"undo",
+					"minted":	["rune_a", "rune_b"]
+				}],
+			"out":	"1 recorded"
+		}, {
+			"name":	"everything at once, in order",
+			"in":	[{
+					"seq":	1,
+					"command":	"rune new text title",
+					"verb":	"rune",
+					"who":	"ada",
+					"pure":	true,
+					"slice":	"undo",
+					"minted":	["rune_aaa"]
+				}, {
+					"seq":	2,
+					"command":	"place title 10 20",
+					"verb":	"place",
+					"who":	"ada",
+					"pure":	true,
+					"slice":	"view",
+					"minted":	[]
+				}, {
+					"seq":	3,
+					"command":	"save",
+					"verb":	"save",
+					"who":	"ada",
+					"pure":	false,
+					"slice":	"host",
+					"minted":	[]
+				}, {
+					"seq":	4,
+					"command":	"journal on",
+					"verb":	"journal",
+					"who":	"ada",
+					"pure":	true,
+					"slice":	"host",
+					"minted":	[]
+				}, {
+					"seq":	5,
+					"command":	"tag title +draft",
+					"verb":	"tag",
+					"who":	"ada",
+					"pure":	true,
+					"slice":	"undo",
+					"minted":	[]
+				}],
+			"out":	"2 recorded; view place; effectful save; host journal"
+		}]
+}

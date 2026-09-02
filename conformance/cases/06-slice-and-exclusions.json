@@ -1,0 +1,100 @@
+{
+	"kind":	"slice",
+	"about":	"SPEC §4.4 — the versioned slice is `mantles` and nothing else",
+	"cases":	[{
+			"name":	"bare state",
+			"in":	{
+				"mantles":	[{
+						"id":	"m1",
+						"name":	"demo",
+						"runes":	[{
+								"spirit":	{
+									"id":	"rune_1",
+									"name":	"intro"
+								},
+								"glyph":	"text",
+								"tags":	["draft"],
+								"content":	{
+									"value":	"hello"
+								}
+							}],
+						"layout":	{
+							"edges":	[]
+						}
+					}]
+			},
+			"out":	"v:ad239d983af0bad5a97850aa0b6be3e586ecccb92a284648a24ba345c4bf52f3"
+		}, {
+			"name":	"with peer-local fields — must equal bare",
+			"in":	{
+				"mantles":	[{
+						"id":	"m1",
+						"name":	"demo",
+						"runes":	[{
+								"spirit":	{
+									"id":	"rune_1",
+									"name":	"intro"
+								},
+								"glyph":	"text",
+								"tags":	["draft"],
+								"content":	{
+									"value":	"hello"
+								}
+							}],
+						"layout":	{
+							"edges":	[]
+						}
+					}],
+				"domains":	{
+					"d":	{
+						"name":	"d",
+						"deploy":	"rm -rf /"
+					}
+				},
+				"bindings":	[{
+						"id":	"b1"
+					}],
+				"config":	{
+					"actor":	"someone"
+				},
+				"active":	{
+					"mantle":	"demo"
+				},
+				"scripts":	{
+					"x":	"ls"
+				},
+				"_baseline":	[]
+			},
+			"out":	"v:ad239d983af0bad5a97850aa0b6be3e586ecccb92a284648a24ba345c4bf52f3"
+		}, {
+			"name":	"empty state",
+			"in":	{
+				"mantles":	[]
+			},
+			"out":	"v:ea243e8e6946c688bde73f4d94c6d4500edbe4ab478f57bcd4ce9f9b4d447c36"
+		}, {
+			"name":	"mantle order irrelevant",
+			"in":	{
+				"mantles":	[{
+						"id":	"a",
+						"name":	"one"
+					}, {
+						"id":	"b",
+						"name":	"two"
+					}]
+			},
+			"out":	"v:ec92a8362425730523d06a7a8cace6cbb62bcffa0d9a9cefebfc57a55b707187"
+		}, {
+			"name":	"mantle order reversed — must equal",
+			"in":	{
+				"mantles":	[{
+						"id":	"b",
+						"name":	"two"
+					}, {
+						"id":	"a",
+						"name":	"one"
+					}]
+			},
+			"out":	"v:ec92a8362425730523d06a7a8cace6cbb62bcffa0d9a9cefebfc57a55b707187"
+		}]
+}

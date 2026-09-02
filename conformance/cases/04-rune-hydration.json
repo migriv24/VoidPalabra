@@ -1,0 +1,86 @@
+{
+	"kind":	"rune",
+	"about":	"SPEC §4.1 — defaults are applied before encoding, so partial == hydrated",
+	"cases":	[{
+			"name":	"minimal",
+			"in":	{
+				"spirit":	{
+					"id":	"r1",
+					"name":	"a"
+				},
+				"glyph":	"text"
+			},
+			"out":	"16dac4a4493696e03f8da1d47c93e7abea0e66aff1ac1d0b77af4d4670f83073"
+		}, {
+			"name":	"fully hydrated — must equal minimal",
+			"in":	{
+				"spirit":	{
+					"id":	"r1",
+					"name":	"a"
+				},
+				"glyph":	"text",
+				"facets":	{
+					"who":	"",
+					"what":	"",
+					"when":	"",
+					"where":	"",
+					"why":	"",
+					"how":	""
+				},
+				"tags":	[],
+				"content":	{
+				},
+				"placement":	null,
+				"relations":	[]
+			},
+			"out":	"16dac4a4493696e03f8da1d47c93e7abea0e66aff1ac1d0b77af4d4670f83073"
+		}, {
+			"name":	"placement included by default",
+			"in":	{
+				"spirit":	{
+					"id":	"r1",
+					"name":	"a"
+				},
+				"glyph":	"text",
+				"placement":	{
+					"x":	1,
+					"y":	2
+				}
+			},
+			"out":	"7da0b42d2a80dece44aea611c02230112a1f360527235abbe319f72f359dc79c"
+		}, {
+			"name":	"placement excluded by policy",
+			"policy":	{
+				"include_view":	false
+			},
+			"in":	{
+				"spirit":	{
+					"id":	"r1",
+					"name":	"a"
+				},
+				"glyph":	"text",
+				"placement":	{
+					"x":	1,
+					"y":	2
+				}
+			},
+			"out":	"47ba6a896dc026cc102a854f0312a93e8eec8152082f457bff996b827b370a70"
+		}, {
+			"name":	"policy excludes only view",
+			"policy":	{
+				"include_view":	false
+			},
+			"in":	{
+				"spirit":	{
+					"id":	"r1",
+					"name":	"a"
+				},
+				"glyph":	"text",
+				"placement":	{
+					"x":	9,
+					"y":	9
+				}
+			},
+			"out":	"47ba6a896dc026cc102a854f0312a93e8eec8152082f457bff996b827b370a70"
+		}]
+}

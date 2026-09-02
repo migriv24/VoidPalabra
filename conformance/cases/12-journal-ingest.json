@@ -1,0 +1,223 @@
+{
+	"kind":	"ingest",
+	"about":	"§8.3 — a Void Core journal export becomes a cut. The filter is pinned by the NAME, because a kept effectful entry is an extra head",
+	"cases":	[{
+			"name":	"an empty journal",
+			"in":	[],
+			"out":	"c:df208f607b9a5f1372cb837ff78be6dc294bcecf1bdc5dc698f90d2325bf7406"
+		}, {
+			"name":	"one pure mantle-slice command",
+			"in":	[{
+					"seq":	1,
+					"command":	"rune new text title",
+					"verb":	"rune",
+					"who":	"ada",
+					"pure":	true,
+					"slice":	"undo",
+					"minted":	["rune_aaa"]
+				}],
+			"out":	"c:e7a037316d717cd8d78e88e7e364c05ad653d374351da4f4243e3ac1ac53a631"
+		}, {
+			"name":	"a save appended — must equal (VoidCore:SPEC §6.2: keep only pure)",
+			"in":	[{
+					"seq":	1,
+					"command":	"rune new text title",
+					"verb":	"rune",
+					"who":	"ada",
+					"pure":	true,
+					"slice":	"undo",
+					"minted":	["rune_aaa"]
+				}, {
+					"seq":	2,
+					"command":	"save",
+					"verb":	"save",
+					"who":	"ada",
+					"pure":	false,
+					"slice":	"host",
+					"minted":	[]
+				}],
+			"out":	"c:e7a037316d717cd8d78e88e7e364c05ad653d374351da4f4243e3ac1ac53a631"
+		}, {
+			"name":	"a deploy appended too — must equal",
+			"in":	[{
+					"seq":	1,
+					"command":	"rune new text title",
+					"verb":	"rune",
+					"who":	"ada",
+					"pure":	true,
+					"slice":	"undo",
+					"minted":	["rune_aaa"]
+				}, {
+					"seq":	2,
+					"command":	"save",
+					"verb":	"save",
+					"who":	"ada",
+					"pure":	false,
+					"slice":	"host",
+					"minted":	[]
+				}, {
+					"seq":	3,
+					"command":	"deploy site",
+					"verb":	"deploy",
+					"who":	"ada",
+					"pure":	false,
+					"slice":	"host",
+					"minted":	[]
+				}],
+			"out":	"c:e7a037316d717cd8d78e88e7e364c05ad653d374351da4f4243e3ac1ac53a631"
+		}, {
+			"name":	"a placement appended — must equal (view is not versioned content)",
+			"in":	[{
+					"seq":	1,
+					"command":	"rune new text title",
+					"verb":	"rune",
+					"who":	"ada",
+					"pure":	true,
+					"slice":	"undo",
+					"minted":	["rune_aaa"]
+				}, {
+					"seq":	2,
+					"command":	"place title 10 20",
+					"verb":	"place",
+					"who":	"ada",
+					"pure":	true,
+					"slice":	"view",
+					"minted":	[]
+				}],
+			"out":	"c:e7a037316d717cd8d78e88e7e364c05ad653d374351da4f4243e3ac1ac53a631"
+		}, {
+			"name":	"a pure host-slice command appended — must equal (it changed nothing)",
+			"in":	[{
+					"seq":	1,
+					"command":	"rune new text title",
+					"verb":	"rune",
+					"who":	"ada",
+					"pure":	true,
+					"slice":	"undo",
+					"minted":	["rune_aaa"]
+				}, {
+					"seq":	2,
+					"command":	"journal on",
+					"verb":	"journal",
+					"who":	"ada",
+					"pure":	true,
+					"slice":	"host",
+					"minted":	[]
+				}],
+			"out":	"c:e7a037316d717cd8d78e88e7e364c05ad653d374351da4f4243e3ac1ac53a631"
+		}, {
+			"name":	"the same seq numbers renumbered — must equal (seq is not the order)",
+			"in":	[{
+					"seq":	41,
+					"command":	"rune new text title",
+					"verb":	"rune",
+					"who":	"ada",
+					"pure":	true,
+					"slice":	"undo",
+					"minted":	["rune_aaa"]
+				}],
+			"out":	"c:e7a037316d717cd8d78e88e7e364c05ad653d374351da4f4243e3ac1ac53a631"
+		}, {
+			"name":	"a second command — must DIFFER",
+			"in":	[{
+					"seq":	1,
+					"command":	"rune new text title",
+					"verb":	"rune",
+					"who":	"ada",
+					"pure":	true,
+					"slice":	"undo",
+					"minted":	["rune_aaa"]
+				}, {
+					"seq":	2,
+					"command":	"tag title +draft",
+					"verb":	"tag",
+					"who":	"ada",
+					"pure":	true,
+					"slice":	"undo",
+					"minted":	[]
+				}],
+			"out":	"c:87b31ab133c9908a78b4233a6465fdb8db10d28145e1c8522009f83d7673bfbe"
+		}, {
+			"name":	"the same two commands in the other order — must DIFFER (order in one journal is real)",
+			"in":	[{
+					"seq":	1,
+					"command":	"tag title +draft",
+					"verb":	"tag",
+					"who":	"ada",
+					"pure":	true,
+					"slice":	"undo",
+					"minted":	[]
+				}, {
+					"seq":	2,
+					"command":	"rune new text title",
+					"verb":	"rune",
+					"who":	"ada",
+					"pure":	true,
+					"slice":	"undo",
+					"minted":	["rune_aaa"]
+				}],
+			"out":	"c:6aa8058813df72c93685f9fc986939408d9cd02f8ad780c1fa9ab2d719e1b092"
+		}, {
+			"name":	"undo records — must DIFFER (a record that omits taking a change back lies)",
+			"in":	[{
+					"seq":	1,
+					"command":	"tag title +draft",
+					"verb":	"tag",
+					"who":	"ada",
+					"pure":	true,
+					"slice":	"undo",
+					"minted":	[]
+				}, {
+					"seq":	2,
+					"command":	"rune new text title",
+					"verb":	"rune",
+					"who":	"ada",
+					"pure":	true,
+					"slice":	"undo",
+					"minted":	["rune_aaa"]
+				}, {
+					"seq":	3,
+					"command":	"undo",
+					"verb":	"undo",
+					"who":	"ada",
+					"pure":	true,
+					"slice":	"undo",
+					"minted":	["rune_aaa"]
+				}],
+			"out":	"c:65fd18ec0810842e689f573b3210dd3e780c0dd67b664b622f79046231a99f71"
+		}, {
+			"name":	"an entry with an unknown slice — refused rather than defaulted",
+			"in":	[{
+					"seq":	1,
+					"command":	"rune new text title",
+					"verb":	"rune",
+					"who":	"ada",
+					"pure":	true,
+					"slice":	"elsewhere",
+					"minted":	[]
+				}],
+			"out":	"refused"
+		}, {
+			"name":	"an entry with no 'who' key — refused (Core emits an explicit null)",
+			"in":	[{
+					"seq":	1,
+					"command":	"rune new text title",
+					"verb":	"rune",
+					"pure":	true,
+					"slice":	"undo",
+					"minted":	[]
+				}],
+			"out":	"refused"
+		}, {
+			"name":	"an entry with no 'pure' key — refused (purity may not be assumed)",
+			"in":	[{
+					"seq":	1,
+					"command":	"rune new text title",
+					"verb":	"rune",
+					"who":	null,
+					"slice":	"undo",
+					"minted":	[]
+				}],
+			"out":	"refused"
+		}]
+}

@@ -1,0 +1,67 @@
+# .gitattributes — what a byte means, decided once, before the first commit.
+#
+# WHY THIS EXISTS. This tree grew on Windows with mixed endings and nothing
+# enforcing either: 46 files are CRLF (SPEC.md, most of src/, most of okf/) and
+# the rest are LF (src/utterance/journal.cpp, src/crdt/document.cpp,
+# conformance/cases/*.json). Nothing chose that split; it is an accident of
+# which editor touched which file on which day.
+#
+# Left alone, one ordinary `sed -i` rewrites a whole file's endings while
+# changing two lines of it, and after the first push that lands as a
+# thousand-line diff in somebody else's review, every time, forever. Void
+# Hormiga learned this the same way one file at a time.
+#
+# `text=auto` settles it: git stores text as LF and checks it out however the
+# platform wants. The working tree keeps behaving the way Windows expects; the
+# repository stops carrying the question.
+#
+# This matters more here than in most projects. Void Palabra's entire claim is
+# that two peers compute the same bytes for the same value — and a CR that
+# wandered into a conformance vector would be a difference in the input to a
+# hash, which is the one kind of difference this library is not allowed to have.
+
+* text=auto
+
+# ── FILES WHOSE ENDINGS ARE PART OF THEIR CONTRACT ──────────────────────────
+# No shell scripts in the tree today. The rule is here anyway, because the first
+# one added will be executed by bash, and a CR after a `then` or a heredoc
+# terminator is a syntax error rather than a cosmetic problem.
+*.sh        text eol=lf
+*.bat       text eol=crlf
+
+# ── EXPLICIT TEXT, so nothing here is ever guessed at ────────────────────────
+*.c         text
+*.h         text
+*.cpp       text
+*.hpp       text
+*.inc       text
+*.py        text
+*.md        text
+*.txt       text
+*.json      text
+*.cmake     text
+CMakeLists.txt text
+
+# The conformance vectors are the contract (SPEC.md §9). They are plain JSON and
+# must stay diffable, because a reviewer reading a changed expectation is the
+# last line of defence against regenerating a failure away.
+conformance/cases/*.json text diff
+
+# ── BINARY, never touched, never diffed as text ─────────────────────────────
+# Nothing binary is committed today — this library is source and vectors, and
+# `vendor/` is cJSON's two source files rather than a prebuilt archive. Listed
+# so that the first image or prebuilt artifact added is not line-ending mangled
+# on the way in.
+*.png       binary
+*.jpg       binary
+*.jpeg      binary
+*.ico       binary
+*.pdf       binary
+*.ttf       binary
+*.woff2     binary
+*.a         binary
+*.lib       binary
+*.dll       binary
+*.exe       binary
+*.o         binary
+*.obj       binary

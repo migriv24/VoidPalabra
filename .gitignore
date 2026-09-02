@@ -1,0 +1,72 @@
+# ── BUILD OUTPUT ────────────────────────────────────────────────────────────
+#
+# CMake + Ninja out-of-source. `build/` covers the normal case; the loose object
+# and archive patterns cover an in-tree build, which CMake permits and which
+# would otherwise scatter artifacts through src/.
+build/
+build-*/
+cmake-build-*/
+*.o
+*.obj
+*.a
+*.lib
+*.dll
+*.exe
+*.pdb
+*.ilk
+
+# CMake's droppings if anyone ever configures in the source tree.
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+CTestTestfile.cmake
+install_manifest.txt
+compile_commands.json
+.ninja_deps
+.ninja_log
+
+# ── CTEST'S SCRATCH DIRECTORY ───────────────────────────────────────────────
+#
+# `Testing/Temporary/LastTest.log` is written into whatever directory ctest was
+# invoked from. Running `ctest` from the repo root rather than from build/ is an
+# easy slip — the README's own command does it via `--test-dir` — and the log
+# carries absolute local paths. Ignored at any depth.
+Testing/
+
+# ── AGENT AND EDITOR STATE: personal, not project ───────────────────────────
+#
+# `.claude/` is one machine's permission allowlist and workflow settings. It
+# tells a stranger nothing about Void Palabra and everything about one laptop,
+# including absolute paths under the author's home directory. If a curated,
+# path-free agent config is ever worth sharing it can be added deliberately with
+# `git add -f`; the default is out.
+.claude/
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# ── RUNTIME SIDECARS AND SCRATCH ────────────────────────────────────────────
+#
+# This library writes no files of its own during a normal build — Archive does
+# file I/O, but only where a caller points it. These patterns exist so that a
+# test run that leaves a stray artifact, or a scratch archive written beside the
+# source while debugging, cannot be committed by an absent-minded `git add -A`.
+*.log
+*.lock
+*.vpal
+*.miga
+__pycache__/
+*.pyc
+
+# ── CORRESPONDENCE ──────────────────────────────────────────────────────────
+#
+# `MESSAGE_FOR_*` files are inter-project handoffs between the sibling agents —
+# an inbox, not a source of truth. What matters from one is folded into
+# `okf/log.md` and the affected concept pages when it is acted on, which is
+# where a reader should find it. Void Hormiga keeps none of them in its public
+# tree for the same reason.
+MESSAGE_FOR_*.md

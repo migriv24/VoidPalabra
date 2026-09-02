@@ -1,0 +1,333 @@
+/* leak_test.cpp — allocation balance across every public entry point.
+ *
+ * Why this exists rather than a sanitizer: the toolchain this project builds with
+ * (MinGW/ucrt64) has no working AddressSanitizer, so `-fsanitize=address` silently
+ * produces nothing. A check that quietly does not run is worse than no check —
+ * it was reported clean here once before anyone noticed the binaries had never
+ * been built.
+ *
+ * cJSON routes every allocation through hooks, and cJSON is the only allocator
+ * Palabra's data structures use, so counting through the hooks catches the leaks
+ * that matter: trees built and dropped inside `join`, `flatten`, `enrich`,
+ * `decode`, and the archive's index. It does not catch leaks of std:: containers,
+ * which RAII already handles.
+ *
+ * The rule this enforces: **a function that returns nothing owned must leave the
+ * allocation count exactly where it found it.**
+ */
+#include "voidpalabra/archive.hpp"
+#include "voidpalabra/canonical.hpp"
+#include "voidpalabra/join.hpp"
+#include "voidpalabra/store.hpp"
+#include "voidpalabra/utterance.hpp"
+
+#include "cJSON.h"
+
+#include <cstdio>
+#include <cstdlib>
+#include <string>
+#include <vector>
+
+using namespace voidpalabra;
+
+namespace {
+
+long g_live = 0;
+long g_total = 0;
+
+void* counting_malloc(size_t n) {
+    ++g_live;
+    ++g_total;
+    return std::malloc(n);
+}
+void counting_free(void* p) {
+    if (p) --g_live;
+    std::free(p);
+}
+
+int g_checks = 0;
+std::vector<std::string> g_failures;
+
+/* Run `body`, then assert the allocation count came back to where it started. */
+void balanced(const char* what, void (*body)()) {
+    long before = g_live;
+    body();
+    ++g_checks;
+    if (g_live != before) {
+        g_failures.push_back(std::string(what) + ": leaked " +
+                             std::to_string(g_live - before) + " cJSON allocation(s)");
+    }
+}
+
+const char* kState =
+    "{\"mantles\":[{\"id\":\"m1\",\"name\":\"demo\",\"runes\":["
+    "{\"spirit\":{\"id\":\"rune_1\",\"name\":\"intro\"},\"glyph\":\"text\","
+    "\"tags\":[\"draft\",\"science\"],\"content\":{\"value\":\"hello\",\"n\":3}},"
+    "{\"spirit\":{\"id\":\"rune_2\",\"name\":\"body\"},\"glyph\":\"richtext\","
+    "\"tags\":[\"draft\"],\"content\":{\"value\":\"world\"}}],"
+    "\"layout\":{\"edges\":[{\"from\":\"intro\",\"to\":\"body\"}]}}]}";
+
+/* --- the bodies ---------------------------------------------------------- */
+
+void body_canonical() {
+    cJSON* s = cJSON_Parse(kState);
+    (void)version_name(s);
+    (void)canon_slice(s);
+    (void)slice_hash(s);
+    cJSON_Delete(s);
+}
+
+void body_encode_decode() {
+    cJSON* s = cJSON_Parse(kState);
+    std::string bytes = encode(s);
+    cJSON* back = decode(bytes);
+    cJSON_Delete(back);
+    cJSON_Delete(s);
+}
+
+void body_decode_garbage() {
+    /* The refusal path allocates partial trees before it discovers the input is
+     * bad; those must not escape. */
+    for (const char* bad : {"\x08\x05", "\x07\xff", "\x05\xff\xff", "\x99"}) {
+        cJSON* v = decode(std::string(bad));
+        if (v) cJSON_Delete(v);
+    }
+}
+
+void body_enrich_flatten() {
+    cJSON* s = cJSON_Parse(kState);
+    CounterMint mint("P");
+    Doc d = enrich(s, mint);
+    Doc f = flatten(d);
+    (void)canon_doc(d);
+    cJSON_Delete(s);
+}
+
+void body_join_and_conflicts() {
+    cJSON* s = cJSON_Parse(kState);
+    CounterMint ma("A"), mb("B");
+    Doc a = enrich(s, ma);
+    Doc b = enrich(s, mb);
+    cJSON* v = cJSON_CreateString("changed");
+    set_field(a, "demo", "rune_1", "content.value", v, ma);
+    cJSON_Delete(v);
+    Doc merged = join(a, b);
+    for (const Conflict& c : conflicts(merged)) {
+        (void)c.hash();
+        cJSON* j = conflict_to_json(c);
+        cJSON_Delete(j);
+    }
+    Doc flat = flatten(merged);
+    cJSON_Delete(s);
+}
+
+void body_tags() {
+    cJSON* s = cJSON_Parse(kState);
+    CounterMint mint("P");
+    Doc d = enrich(s, mint);
+    add_tag(d, "demo", "rune_1", "extra", mint);
+    remove_tag(d, "demo", "rune_1", "draft");
+    add_tag(d, "demo", "nonexistent", "x", mint);   // failure path
+    remove_tag(d, "nope", "rune_1", "draft");       // failure path
+    cJSON_Delete(s);
+}
+
+void body_archive() {
+    cJSON* s = cJSON_Parse(kState);
+    Archive a;
+    a.save(s, "one");
+    a.put_asset("x.bin", std::string(30000, 'q'));
+    cJSON* back = a.load_latest();
+    if (back) cJSON_Delete(back);
+    cJSON* missing = a.load("v:nope");
+    if (missing) cJSON_Delete(missing);
+    std::string bytes = a.to_bytes();
+    Archive b;
+    Archive::from_bytes(bytes, b);
+    Archive c;
+    Archive::from_bytes("garbage", c);           // failure path
+    Archive::from_bytes(bytes.substr(0, 50), c); // truncation path
+    cJSON_Delete(s);
+}
+
+void body_import_miga() {
+    std::string good = std::string("{\"magic\":\"MIGA\",\"version\":3,\"state\":") +
+                       kState + ",\"assets\":{\"a\":\"aGk=\"}}";
+    Archive a;
+    import_miga(good, a);
+    Archive b;
+    import_miga("{\"magic\":\"MIGA\",\"version\":2}", b);          // refusal
+    Archive c;
+    import_miga(std::string("{\"magic\":\"MIGA\",\"version\":3,\"state\":") + kState +
+                ",\"assets\":{\"a\":\"!!!\"}}", c);                 // bad base64
+    Archive d;
+    import_miga("not json", d);                                     // unparseable
+}
+
+void body_refusals() {
+    /* Every throwing path allocates before it throws. */
+    const char* bad[] = {
+        "{\"mantles\":[{\"name\":\"a\",\"runes\":[{}]}]}",            // no spirit.id
+        "{\"mantles\":[{\"id\":\"x\"}]}",                             // no name
+        "{\"mantles\":[{\"id\":\"a\",\"name\":\"d\"},{\"id\":\"b\",\"name\":\"d\"}]}",
+    };
+    for (const char* text : bad) {
+        cJSON* s = cJSON_Parse(text);
+        try { (void)version_name(s); } catch (const CanonicalError&) {}
+        cJSON_Delete(s);
+    }
+}
+
+
+void body_field_policies() {
+    /* The Max path decodes every candidate value to compare them, so it allocates
+     * inside a loop and discards most of what it makes — exactly the shape that
+     * leaks. Pick and the Conflict fallback go through the same resolver. */
+    cJSON* s = cJSON_Parse(kState);
+    CounterMint ma("A"), mb("B");
+    Doc a = enrich(s, ma), b = enrich(s, mb);
+    cJSON* n1 = cJSON_CreateNumber(7);
+    cJSON* n2 = cJSON_CreateNumber(3);
+    cJSON* bad = cJSON_CreateString("not-a-number");
+    set_field(a, "demo", "rune_1", "content.n", n1, ma);
+    set_field(b, "demo", "rune_1", "content.n", n2, mb);
+    set_field(a, "demo", "rune_2", "content.v", bad, ma);
+    set_field(b, "demo", "rune_2", "content.v", n1, mb);
+    cJSON_Delete(n1); cJSON_Delete(n2); cJSON_Delete(bad);
+
+    Doc merged = join(a, b);
+    JoinPolicy maxp; maxp.fields["content.*"] = FieldJoin::Max;
+    JoinPolicy pick = JoinPolicy::core_defaults();
+    for (const JoinPolicy& p : {JoinPolicy{}, maxp, pick}) {
+        Doc f = flatten(merged, p);
+        for (const Conflict& c : conflicts(merged, p)) {
+            (void)c.hash();
+            cJSON* j = conflict_to_json(c);
+            cJSON_Delete(j);
+        }
+    }
+    cJSON_Delete(s);
+}
+
+
+void body_sequence() {
+    /* seq_order decodes every node on every call and seq_read decodes payloads
+     * into a fresh array - both allocate in loops and discard most of it. */
+    cJSON* s = cJSON_Parse(kState);
+    CounterMint ma("A"), mb("B");
+    Doc a = enrich(s, ma), b = enrich(s, mb);
+    cJSON* empty = cJSON_CreateArray();
+    seq_init(a, "demo", "rune_1", "content.blocks", empty, ma);
+    seq_init(b, "demo", "rune_1", "content.blocks", empty, mb);
+    cJSON_Delete(empty);
+
+    for (int i = 0; i < 6; ++i) {
+        cJSON* v = cJSON_CreateString(i % 2 ? "x" : "y");
+        seq_insert(a, "demo", "rune_1", "content.blocks", i, v, ma);
+        seq_insert(b, "demo", "rune_1", "content.blocks", i, v, mb);
+        cJSON_Delete(v);
+    }
+    seq_erase(a, "demo", "rune_1", "content.blocks", 2);
+    seq_erase(a, "demo", "rune_1", "content.blocks", 99);   // refusal path
+    cJSON* v = cJSON_CreateString("z");
+    seq_insert(a, "demo", "rune_1", "content.blocks", 99, v, ma);  // refusal path
+    seq_insert(a, "nope", "rune_1", "content.blocks", 0, v, ma);   // missing mantle
+    cJSON_Delete(v);
+
+    Doc merged = join(a, b);
+    cJSON* read = seq_read(merged, "demo", "rune_1", "content.blocks");
+    if (read) cJSON_Delete(read);
+    cJSON* none = seq_read(merged, "demo", "rune_1", "glyph");
+    if (none) cJSON_Delete(none);
+    (void)seq_is(merged, "demo", "rune_1", "content.blocks");
+    (void)canon_doc(merged);
+    Doc flat = flatten(merged);
+    cJSON_Delete(s);
+}
+
+/* The utterance layer allocates cJSON in three places: parsing a journal export,
+ * writing a history out, and reading one back. Each returns either nothing owned
+ * or a tree the caller frees, so the count must come home. */
+void body_utterance() {
+    const char* journal =
+        "[{\"seq\":1,\"command\":\"rune new text a\",\"verb\":\"rune\","
+        "\"who\":\"ada\",\"pure\":true,\"slice\":\"undo\",\"minted\":[\"rune_a\"]},"
+        "{\"seq\":2,\"command\":\"save\",\"verb\":\"save\",\"who\":null,"
+        "\"pure\":false,\"slice\":\"host\",\"minted\":[]},"
+        "{\"seq\":3,\"command\":\"tag a +x\",\"verb\":\"tag\",\"who\":null,"
+        "\"pure\":true,\"slice\":\"undo\",\"minted\":[]}]";
+
+    std::vector<JournalEntry> entries;
+    parse_journal(std::string(journal), entries, nullptr);
+
+    History h;
+    h.record(entries, {"leak-check"});
+
+    cJSON* out = h.to_json();
+    History back;
+    History::from_json(out, back, nullptr);
+    cJSON_Delete(out);
+
+    cJSON* one = utterance_to_json(*h.get(h.heads()[0]));
+    Utterance u;
+    utterance_from_json(one, u, nullptr);
+    cJSON_Delete(one);
+
+    /* And the failure paths, which are the ones that leak: an early return that
+     * forgets the tree it parsed. */
+    std::vector<JournalEntry> junk;
+    parse_journal(std::string("{\"not\":\"an array\"}"), junk, nullptr);
+    parse_journal(std::string("[{\"seq\":1}]"), junk, nullptr);
+    parse_journal(std::string("not json at all"), junk, nullptr);
+}
+
+struct Case { const char* name; void (*fn)(); };
+
+const Case kCases[] = {
+    {"canonical", body_canonical},
+    {"encode/decode", body_encode_decode},
+    {"decode refusals", body_decode_garbage},
+    {"enrich/flatten", body_enrich_flatten},
+    {"join + conflicts", body_join_and_conflicts},
+    {"tag edits", body_tags},
+    {"archive", body_archive},
+    {"import_miga", body_import_miga},
+    {"canonical refusals", body_refusals},
+    {"field policies", body_field_policies},
+    {"sequence", body_sequence},
+    {"utterance/history", body_utterance},
+};
+
+}  // namespace
+
+int main() {
+    cJSON_Hooks hooks;
+    hooks.malloc_fn = counting_malloc;
+    hooks.free_fn = counting_free;
+    cJSON_InitHooks(&hooks);
+
+    for (const Case& c : kCases) {
+        long before = g_live;
+        balanced(c.name, c.fn);
+        bool ok = g_live == before;
+        std::printf("%s %-22s (%+ld live)\n", ok ? "ok  " : "LEAK", c.name,
+                    g_live - before);
+    }
+
+    /* Run everything a second time: a leak that only shows up under repetition —
+     * a cache, a static, a container that grows — would otherwise hide. */
+    long before_all = g_live;
+    for (int i = 0; i < 20; ++i)
+        for (const Case& c : kCases) c.fn();
+    ++g_checks;
+    if (g_live != before_all)
+        g_failures.push_back("20 repetitions leaked " +
+                             std::to_string(g_live - before_all) + " allocation(s)");
+    std::printf("%s 20x repetition       (%+ld live)\n",
+                g_live == before_all ? "ok  " : "LEAK", g_live - before_all);
+
+    for (const auto& f : g_failures) std::printf("  - %s\n", f.c_str());
+    std::printf("\n%d/%d balanced, %ld total allocations exercised\n",
+                g_checks - static_cast<int>(g_failures.size()), g_checks, g_total);
+    return g_failures.empty() ? 0 : 1;
+}

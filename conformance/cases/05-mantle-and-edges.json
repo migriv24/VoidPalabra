@@ -1,0 +1,142 @@
+{
+	"kind":	"mantle",
+	"about":	"SPEC §4.2–4.3 — runes are a set; undirected edges sort their endpoints",
+	"cases":	[{
+			"name":	"two runes",
+			"in":	{
+				"id":	"m",
+				"name":	"d",
+				"runes":	[{
+						"spirit":	{
+							"id":	"r1",
+							"name":	"a"
+						}
+					}, {
+						"spirit":	{
+							"id":	"r2",
+							"name":	"b"
+						}
+					}]
+			},
+			"out":	"946e9075c174b8d49a75006f8563333cf4c58ec7a71b20db2a0afb0b95c95ec8"
+		}, {
+			"name":	"reversed runes — must equal",
+			"in":	{
+				"id":	"m",
+				"name":	"d",
+				"runes":	[{
+						"spirit":	{
+							"id":	"r2",
+							"name":	"b"
+						}
+					}, {
+						"spirit":	{
+							"id":	"r1",
+							"name":	"a"
+						}
+					}]
+			},
+			"out":	"946e9075c174b8d49a75006f8563333cf4c58ec7a71b20db2a0afb0b95c95ec8"
+		}, {
+			"name":	"undirected a->b",
+			"in":	{
+				"id":	"m",
+				"name":	"d",
+				"layout":	{
+					"edges":	[{
+							"from":	"a",
+							"to":	"b",
+							"directed":	false
+						}]
+				}
+			},
+			"out":	"788cfee499e16dc25377b380941f3ec440cc5b11e80e2bad0e44cc28fd89f0ca"
+		}, {
+			"name":	"undirected b->a — must equal",
+			"in":	{
+				"id":	"m",
+				"name":	"d",
+				"layout":	{
+					"edges":	[{
+							"from":	"b",
+							"to":	"a",
+							"directed":	false
+						}]
+				}
+			},
+			"out":	"788cfee499e16dc25377b380941f3ec440cc5b11e80e2bad0e44cc28fd89f0ca"
+		}, {
+			"name":	"directed a->b",
+			"in":	{
+				"id":	"m",
+				"name":	"d",
+				"layout":	{
+					"edges":	[{
+							"from":	"a",
+							"to":	"b",
+							"directed":	true
+						}]
+				}
+			},
+			"out":	"aa31be7a9ef4794cf872feedf8126cb0a0ed05cd948d7143863bc5e8aea262a7"
+		}, {
+			"name":	"directed b->a — must DIFFER",
+			"in":	{
+				"id":	"m",
+				"name":	"d",
+				"layout":	{
+					"edges":	[{
+							"from":	"b",
+							"to":	"a",
+							"directed":	true
+						}]
+				}
+			},
+			"out":	"7e828c2ad6c262f59db83fef29a42b90bf7cccd72fb6de35de90a7f3459a82cd"
+		}, {
+			"name":	"edge defaults",
+			"in":	{
+				"id":	"m",
+				"name":	"d",
+				"layout":	{
+					"edges":	[{
+							"from":	"a",
+							"to":	"b"
+						}]
+				}
+			},
+			"out":	"aa31be7a9ef4794cf872feedf8126cb0a0ed05cd948d7143863bc5e8aea262a7"
+		}, {
+			"name":	"edge explicit defaults — must equal",
+			"in":	{
+				"id":	"m",
+				"name":	"d",
+				"layout":	{
+					"edges":	[{
+							"from":	"a",
+							"to":	"b",
+							"relation":	"",
+							"weight":	1,
+							"directed":	true
+						}]
+				}
+			},
+			"out":	"aa31be7a9ef4794cf872feedf8126cb0a0ed05cd948d7143863bc5e8aea262a7"
+		}, {
+			"name":	"duplicate edge collapses",
+			"in":	{
+				"id":	"m",
+				"name":	"d",
+				"layout":	{
+					"edges":	[{
+							"from":	"a",
+							"to":	"b"
+						}, {
+							"from":	"a",
+							"to":	"b"
+						}]
+				}
+			},
+			"out":	"aa31be7a9ef4794cf872feedf8126cb0a0ed05cd948d7143863bc5e8aea262a7"
+		}]
+}
