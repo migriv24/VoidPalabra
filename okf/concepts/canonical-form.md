@@ -7,6 +7,16 @@ tags: [status:current, audience:dev, audience:library, confidence:asserted, foun
 timestamp: 2026-07-27T00:00:00Z
 ---
 
+> **The slice grew a key on 2026-09-03.** It was `mantles` alone; it is now
+> `mantles` **and** `glyphs`, after Void Core 0.2.14 put glyph declarations in the
+> state document. `CANON_VERSION` went to **3** and every name moved, including for
+> documents that declare nothing — the slice used to encode as a bare set of
+> mantles and now encodes as a two-member map. The counter exists for exactly this,
+> and the alternative (encode the second key only when present) was rejected
+> because it would make "absent" and "empty" two different states forever in order
+> to avoid one bump once. The reasoning for including it at all is on the
+> [utterance](/concepts/utterance.md) page, with the table it belongs to.
+
 The **canonical form** of a Void Core slice is its unique byte representation under
 a rule that ignores everything meaningless: the order runes were written down, the
 order edges were listed, the order keys appear in a JSON object. Its **hash** is the

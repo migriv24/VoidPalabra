@@ -20,6 +20,7 @@
 #include "voidpalabra/join.hpp"
 #include "voidpalabra/store.hpp"
 #include "voidpalabra/utterance.hpp"
+#include "voidpalabra/crdt/conflict.hpp"
 
 #include "cJSON.h"
 
@@ -281,6 +282,35 @@ void body_utterance() {
     parse_journal(std::string("not json at all"), junk, nullptr);
 }
 
+/* The glyph path allocates in three places: enrich building a register per
+ * declaration, flatten decoding one back, and conflict rendering. */
+void body_glyphs() {
+    const char* a = "{\"mantles\":[],\"glyphs\":{\"stat\":{\"glyph\":\"stat\","
+                    "\"kind\":\"measure\",\"fields\":[\"note\"]}}}";
+    const char* b = "{\"mantles\":[],\"glyphs\":{\"stat\":{\"glyph\":\"stat\","
+                    "\"kind\":\"entity\",\"fields\":[\"body\"]}}}";
+    cJSON* pa = cJSON_Parse(a);
+    cJSON* pb = cJSON_Parse(b);
+    CounterMint ma("A"), mb("B");
+    {
+        Doc da = enrich(pa, ma), db = enrich(pb, mb);
+        Doc merged = join(da, db);
+        for (const Conflict& c : conflicts(merged)) {
+            cJSON* j = conflict_to_json(c);
+            cJSON_Delete(j);
+        }
+        Doc flat = flatten(merged);
+        (void)canon_doc(merged);
+    }
+    (void)version_name(pa);
+    /* The refusal paths, which are where an early return forgets a tree. */
+    cJSON* bad = cJSON_Parse("{\"mantles\":[],\"glyphs\":[\"nope\"]}");
+    try { (void)version_name(bad); } catch (const CanonicalError&) {}
+    cJSON_Delete(bad);
+    cJSON_Delete(pa);
+    cJSON_Delete(pb);
+}
+
 struct Case { const char* name; void (*fn)(); };
 
 const Case kCases[] = {
@@ -296,6 +326,7 @@ const Case kCases[] = {
     {"field policies", body_field_policies},
     {"sequence", body_sequence},
     {"utterance/history", body_utterance},
+    {"glyph declarations", body_glyphs},
 };
 
 }  // namespace

@@ -96,7 +96,7 @@
 								}]
 						}]
 				}],
-			"out":	"d4df189c974622a916b8ea390f567be1d007575b1b7f9040bff475681c60f591"
+			"out":	"7352f472c6ed4dcd53c6390363e9c00b4e1f9dab4b105034da61c877b5879fd3"
 		}, {
 			"name":	"conflict name is order-independent",
 			"in":	[{
@@ -128,6 +128,6 @@
 								}]
 						}]
 				}],
-			"out":	"d4df189c974622a916b8ea390f567be1d007575b1b7f9040bff475681c60f591"
+			"out":	"7352f472c6ed4dcd53c6390363e9c00b4e1f9dab4b105034da61c877b5879fd3"
 		}]
 }

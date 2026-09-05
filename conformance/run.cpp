@@ -302,6 +302,8 @@ int main(int argc, char** argv) {
         "conformance/cases/12-journal-ingest.json",
         "conformance/cases/13-ingest-report.json",
         "conformance/cases/14-linear-extension.json",
+        "conformance/cases/15-glyph-declarations.json",
+        "conformance/cases/16-glyph-merge.json",
     };
 
     std::printf("Void Palabra conformance — SPEC.md v%d%s\n\n", kCanonVersion,

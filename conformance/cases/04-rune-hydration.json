@@ -10,7 +10,7 @@
 				},
 				"glyph":	"text"
 			},
-			"out":	"16dac4a4493696e03f8da1d47c93e7abea0e66aff1ac1d0b77af4d4670f83073"
+			"out":	"414060abd6c340e086cb231cb7c487ae7b33e878f61c21a4023122036e391ed4"
 		}, {
 			"name":	"fully hydrated — must equal minimal",
 			"in":	{
@@ -33,7 +33,7 @@
 				"placement":	null,
 				"relations":	[]
 			},
-			"out":	"16dac4a4493696e03f8da1d47c93e7abea0e66aff1ac1d0b77af4d4670f83073"
+			"out":	"414060abd6c340e086cb231cb7c487ae7b33e878f61c21a4023122036e391ed4"
 		}, {
 			"name":	"placement included by default",
 			"in":	{
@@ -47,7 +47,7 @@
 					"y":	2
 				}
 			},
-			"out":	"7da0b42d2a80dece44aea611c02230112a1f360527235abbe319f72f359dc79c"
+			"out":	"93a3e09adad3f7168bd4fa5c6173ac025cdb2a2e6fed26d903076f090cf2f594"
 		}, {
 			"name":	"placement excluded by policy",
 			"policy":	{
@@ -64,7 +64,7 @@
 					"y":	2
 				}
 			},
-			"out":	"47ba6a896dc026cc102a854f0312a93e8eec8152082f457bff996b827b370a70"
+			"out":	"e5905e973d4fcde45bffbf4f817678af5c51d876bec12c0424e53c281c58f405"
 		}, {
 			"name":	"policy excludes only view",
 			"policy":	{
@@ -81,6 +81,6 @@
 					"y":	9
 				}
 			},
-			"out":	"47ba6a896dc026cc102a854f0312a93e8eec8152082f457bff996b827b370a70"
+			"out":	"e5905e973d4fcde45bffbf4f817678af5c51d876bec12c0424e53c281c58f405"
 		}]
 }

@@ -1,0 +1,189 @@
+{
+	"kind":	"conflicts",
+	"about":	"§5.3 — merging declarations. Disjoint types both survive; two schemas for one name is a disagreement, not something to guess at",
+	"cases":	[{
+			"name":	"neither peer declared anything",
+			"in":	[{
+					"mantles":	[{
+							"name":	"m",
+							"runes":	[]
+						}]
+				}, {
+					"mantles":	[{
+							"name":	"m",
+							"runes":	[]
+						}]
+				}],
+			"out":	"none"
+		}, {
+			"name":	"one peer declared, the other never saw it — must equal (not a conflict)",
+			"in":	[{
+					"mantles":	[{
+							"name":	"m",
+							"runes":	[]
+						}],
+					"glyphs":	{
+						"stat":	{
+							"glyph":	"stat",
+							"kind":	"measure"
+						}
+					}
+				}, {
+					"mantles":	[{
+							"name":	"m",
+							"runes":	[]
+						}]
+				}],
+			"out":	"none"
+		}, {
+			"name":	"two different types — must equal (disjoint declarations do not collide)",
+			"in":	[{
+					"mantles":	[],
+					"glyphs":	{
+						"a":	{
+							"glyph":	"a",
+							"kind":	"act"
+						}
+					}
+				}, {
+					"mantles":	[],
+					"glyphs":	{
+						"b":	{
+							"glyph":	"b",
+							"kind":	"measure"
+						}
+					}
+				}],
+			"out":	"none"
+		}, {
+			"name":	"the same type, declared identically — must equal (idempotence)",
+			"in":	[{
+					"mantles":	[],
+					"glyphs":	{
+						"stat":	{
+							"glyph":	"stat",
+							"kind":	"measure"
+						}
+					}
+				}, {
+					"mantles":	[],
+					"glyphs":	{
+						"stat":	{
+							"glyph":	"stat",
+							"kind":	"measure"
+						}
+					}
+				}],
+			"out":	"none"
+		}, {
+			"name":	"the same type, two schemas — must DIFFER (a redeclaration conflict)",
+			"in":	[{
+					"mantles":	[],
+					"glyphs":	{
+						"stat":	{
+							"glyph":	"stat",
+							"kind":	"measure",
+							"fields":	["note"]
+						}
+					}
+				}, {
+					"mantles":	[],
+					"glyphs":	{
+						"stat":	{
+							"glyph":	"stat",
+							"kind":	"entity",
+							"fields":	["body"]
+						}
+					}
+				}],
+			"out":	"5f6193141a51f93256951654cdcfa64b2be61fda44e8a363641fbe339ae13b07"
+		}, {
+			"name":	"the same two schemas, peers swapped — must equal (a conflict has one name)",
+			"in":	[{
+					"mantles":	[],
+					"glyphs":	{
+						"stat":	{
+							"glyph":	"stat",
+							"kind":	"entity",
+							"fields":	["body"]
+						}
+					}
+				}, {
+					"mantles":	[],
+					"glyphs":	{
+						"stat":	{
+							"glyph":	"stat",
+							"kind":	"measure",
+							"fields":	["note"]
+						}
+					}
+				}],
+			"out":	"5f6193141a51f93256951654cdcfa64b2be61fda44e8a363641fbe339ae13b07"
+		}, {
+			"name":	"differing only in source — must DIFFER from the conflict above (peer-local, so they agree)",
+			"in":	[{
+					"mantles":	[],
+					"glyphs":	{
+						"stat":	{
+							"glyph":	"stat",
+							"kind":	"measure",
+							"source":	"document"
+						}
+					}
+				}, {
+					"mantles":	[],
+					"glyphs":	{
+						"stat":	{
+							"glyph":	"stat",
+							"kind":	"measure",
+							"source":	"host"
+						}
+					}
+				}],
+			"out":	"none"
+		}, {
+			"name":	"a declaration conflict and a content conflict together",
+			"in":	[{
+					"mantles":	[{
+							"name":	"m",
+							"runes":	[{
+									"spirit":	{
+										"id":	"rune_a",
+										"name":	"t"
+									},
+									"glyph":	"text",
+									"content":	{
+										"body":	"one"
+									}
+								}]
+						}],
+					"glyphs":	{
+						"stat":	{
+							"glyph":	"stat",
+							"kind":	"measure"
+						}
+					}
+				}, {
+					"mantles":	[{
+							"name":	"m",
+							"runes":	[{
+									"spirit":	{
+										"id":	"rune_a",
+										"name":	"t"
+									},
+									"glyph":	"text",
+									"content":	{
+										"body":	"two"
+									}
+								}]
+						}],
+					"glyphs":	{
+						"stat":	{
+							"glyph":	"stat",
+							"kind":	"act"
+						}
+					}
+				}],
+			"out":	"911c70ba84d1d94c12c93c9ca08d8fddd0dbc709e026e770f930e4659d2c7d003b25daa3f3507482fb1eacd4868a100a6105523d257e72d56ce6acbb156eca84"
+		}]
+}

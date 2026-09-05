@@ -48,13 +48,37 @@ The two agreeing is a good sign.
 {
   "kind":  "conflict",
   "at":    { "mantle": "...", "rune": "...", "field": "..." },
-  "sides": [ { "utterance": "utt_…", "value": …, "who": "…" },
-             { "utterance": "utt_…", "value": …, "who": "…" } ]
+  "sides": [ { "utterance": "u:…", "value": …, "who": "…" },
+             { "utterance": "u:…", "value": …, "who": "…" } ]
 }
 ```
 
+**A conflict is located by one of two addresses**, and a reader should branch on
+which. A disagreement inside a mantle carries `mantle` (and `rune` for a
+rune-level field). A **concurrent redeclaration** — two peers giving one glyph
+name two schemas, possible since 2026-09-03 — carries `glyph` instead, with
+`field: "descriptor"`:
+
+```jsonc
+{ "kind": "conflict",
+  "at":   { "glyph": "stat", "field": "descriptor" },
+  "sides": [ { "value": {"glyph":"stat","kind":"measure","fields":["note"]} },
+             { "value": {"glyph":"stat","kind":"entity","fields":["body"]} } ] }
+```
+
+A declaration belongs to the **document**, not to any mantle, so the mantle key is
+absent rather than empty. An empty string standing in for "not in a mantle" is how
+a renderer ends up printing a blank where a name should be — the shape says which
+kind of thing disagreed, and a reader never has to guess from a sentinel.
+
 - **Symmetric.** No side is privileged; there is no "ours" and no "theirs",
   because there is no main branch.
+- **At the granularity the object deserves.** A rune's `content` is split into one
+  register per key, so two peers editing different fields do not collide. A glyph
+  **declaration is one register for the whole descriptor**, deliberately the
+  opposite: merging a schema per key would assemble peer A's `fields` with peer B's
+  `kind` and hand back a type **neither of them declared**. A schema nobody wrote is
+  worse than a disagreement somebody has to answer.
 - **Deterministic.** `sides` is ordered canonically (by utterance hash) so every
   peer names the conflict identically.
 - **Not blocking.** A mantle containing a conflict is still readable, still

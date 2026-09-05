@@ -92,6 +92,9 @@ regeneration:
 | `content list yx` != `content list xy` | §4.1 — content sequences keep order |
 | `with peer-local fields` == `bare state` | §4.4 — only `mantles` is versioned |
 | `mantle order reversed` == `mantle order` | §4.2 / `VoidCore:SPEC.md §4` |
+| `empty glyphs map` == `declares nothing` | §4.4 — absent and empty are one state |
+| `source=host` == `source=document` | §4.5 — peer-local resolution is not the type |
+| `with a glyph declaration` != `with peer-local fields` | §4.4 — the line between versioned and peer-local |
 | `seq changed` == baseline | §8.2 — a dispatch counter is not part of a name |
 | `parents reordered` == baseline | §8.2 — parents are a set |
 | `a save appended` == without it | §8.1 — the consumer obligation, as a relation |
@@ -114,6 +117,8 @@ A vector with no relation to any other vector only pins a number.
 | `08-enriched-document.json` | §5.2 — the enriched document |
 | `09-join.json` | §5.3 — merging two documents |
 | `10-conflicts.json` | §5.3 — conflicts as addressed values |
+| `15-glyph-declarations.json` | §4.4–§4.5 — what a declaration contributes to a name, and what is excluded |
+| `16-glyph-merge.json` | §5.3 — declarations across a merge; redeclaration as a conflict |
 
 
 ## The §8 vectors, and why `ingest` reports a cut rather than a count
@@ -129,11 +134,24 @@ cut**, and the relation would break loudly.
 different: one says what MUST NOT be recorded, the other says that the omission
 MUST be visible.
 
-`14-linear-extension.json` was generated rather than hand-written, because its
+`14-linear-extension.json` is **generated**, by `tools/gen_linear_vectors.cpp`, because its
 utterances name each other by hash. The graph is a diamond — one root, two
 concurrent children, a merge naming both, and a tail — delivered three ways. It is
 the smallest graph whose extension involves an actual choice, which is the only
 kind that can pin a tiebreak.
+
+**Regenerating it takes two steps, and they are separate on purpose:**
+
+```bash
+cmake --build build --target gen_linear_vectors   # rewrites the `in` hashes
+./build/bin/gen_linear_vectors                    # from the repo root
+./build/bin/voidpalabra_conformance --regen       # then fills in `out`
+```
+
+The generator is `EXCLUDE_FROM_ALL` and has no ctest entry: it **writes** a
+contract rather than checking one, and one that ran during an ordinary build is
+how a suite quietly starts agreeing with whatever the implementation does today.
+Read the diff before committing it — that is the whole safeguard.
 
 ## What is deliberately not covered
 

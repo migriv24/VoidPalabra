@@ -9,6 +9,7 @@
 #include "cJSON.h"
 
 #include <algorithm>
+#include <cstring>
 #include <string>
 #include <vector>
 
@@ -161,6 +162,53 @@ std::string canon_mantle(const cJSON* mantle, const Policy& policy) {
     return encode_map(std::move(f));
 }
 
+/* A glyph DECLARATION (VoidCore:SPEC.md §2, 0.2.14): the schema that says what a
+ * rune's content means. Palabra does not interpret one — it is an application's
+ * type, and Core itself stores `presentations` without reading it — so the body
+ * goes through the generic encoder.
+ *
+ * ONE KEY IS EXCLUDED: `source`.
+ *
+ * Core stamps each descriptor `"source": "document"` or `"host"` to say whether a
+ * declaration traveled with the data or was registered at boot. That is an answer
+ * about THIS PEER's resolution, not about the type — the same declaration is
+ * `document` on the peer that received it and could be `host` on a peer whose
+ * application registered it too. Hashing it would make two peers holding the same
+ * schema compute different names for it, which is the exact divergence
+ * okf/concepts/canonical-form.md exists to prevent.
+ *
+ * It is the same judgment as `domains` (§4.4): real state, peer-local resolution,
+ * not versioned content. The difference is that `source` sits INSIDE a key that
+ * is versioned, so it has to be excluded here rather than by omitting the key. */
+std::string canon_glyph_descriptor_impl(const cJSON* descriptor) {
+    if (!descriptor || !cJSON_IsObject(descriptor))
+        throw CanonicalError("glyph declaration is not an object");
+    std::vector<std::pair<std::string, std::string> > fields;
+    for (const cJSON* it = descriptor->child; it; it = it->next) {
+        if (!it->string) throw CanonicalError("glyph declaration member without a key");
+        if (std::strcmp(it->string, "source") == 0) continue;  // peer-local
+        fields.emplace_back(it->string, encode(it));
+    }
+    return encode_map_of_encoded(fields);
+}
+
+std::string canon_glyphs(const cJSON* state) {
+    const cJSON* glyphs = get(state, "glyphs");
+    std::vector<std::pair<std::string, std::string> > decls;
+    if (glyphs && cJSON_IsObject(glyphs)) {
+        for (const cJSON* g = glyphs->child; g; g = g->next) {
+            if (!g->string) throw CanonicalError("glyph declaration without a name");
+            decls.emplace_back(g->string, canon_glyph_descriptor_impl(g));
+        }
+    } else if (glyphs && !cJSON_IsNull(glyphs)) {
+        throw CanonicalError("`glyphs` is present but is not an object");
+    }
+    /* A map, so an ABSENT `glyphs` and an EMPTY one encode identically — the same
+     * hydration rule §4.1 applies to a partial rune. A document written before
+     * 0.2.14 and one that declared nothing are the same state and must say so. */
+    return encode_map_of_encoded(decls);
+}
+
 std::string canon_slice(const cJSON* state, const Policy& policy) {
     std::vector<std::string> mantles;
     std::vector<std::string> names;
@@ -176,10 +224,37 @@ std::string canon_slice(const cJSON* state, const Policy& policy) {
     if (std::adjacent_find(sorted_names.begin(), sorted_names.end()) !=
         sorted_names.end())
         throw CanonicalError("duplicate mantle name");  // SPEC §3.4
-    return encode_set(std::move(mantles));
+
+    /* THE VERSIONED SLICE IS TWO KEYS AS OF CANON_VERSION 3 (2026-09-03).
+     *
+     * It was `mantles` alone. Void Core 0.2.14 added `state.glyphs`, and Core
+     * argued it belongs here rather than beside `domains`. The argument is theirs
+     * and we accept it:
+     *
+     *     A domain is HOW THIS MACHINE REACHES THE WORLD. A glyph declaration is
+     *     WHAT THE RUNES YOU ARE ALREADY SYNCING MEAN.
+     *
+     * Palabra's forcing case for excluding `domains` — a domain carries real
+     * build/deploy commands, so syncing one runs device A's deploy on device B —
+     * genuinely does not reach a declaration. A descriptor is inert data that
+     * Core stores and does not execute.
+     *
+     * And excluding it has a measured cost rather than a theoretical one: sync a
+     * mantle without its declarations and the receiving peer holds the content in
+     * its document and cannot reach it through the projection, with no error
+     * anywhere. `mantles` and `glyphs` are a value and its type. */
+    std::vector<std::pair<std::string, std::string> > slice;
+    slice.emplace_back("mantles", encode_set(std::move(mantles)));
+    slice.emplace_back("glyphs", canon_glyphs(state));
+    return encode_map_of_encoded(slice);
 }
 
 
+namespace enc {
+std::string canon_glyph_descriptor(const cJSON* descriptor) {
+    return canon_glyph_descriptor_impl(descriptor);
+}
+}  // namespace enc
 
 Digest rune_hash(const cJSON* r, const Policy& p) {
     return digest_of("rune", canon_rune(r, p), p);

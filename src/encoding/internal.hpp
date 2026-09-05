@@ -66,6 +66,17 @@ std::string encode_map_of_encoded(
 Digest domain_digest(const char* kind, const std::string& payload,
                      const std::string& policy_tag);
 
+/* The canonical bytes of ONE glyph declaration (VoidCore:SPEC.md §2, 0.2.14),
+ * with the peer-local `source` key excluded — SPEC.md §4.4.
+ *
+ * Shared with the CRDT layer rather than duplicated there, because the register
+ * that CARRIES a declaration across a merge and the name computed OVER it have to
+ * agree about what a declaration is. When they disagreed briefly during
+ * development, two peers differing only in `source` computed one version name and
+ * still reported a redeclaration conflict — the state said "identical" and the
+ * merge said "you disagree", which is the worst of both answers. */
+std::string canon_glyph_descriptor(const cJSON* descriptor);
+
 /* --- small cJSON helpers, shared by the bindings ------------------------- */
 const cJSON* get(const cJSON* obj, const char* key);
 std::string str_or(const cJSON* item, const char* fallback);

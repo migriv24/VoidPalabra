@@ -8,6 +8,8 @@
  */
 #include "internal.hpp"
 
+#include "encoding/internal.hpp"
+
 #include "voidpalabra/canonical.hpp"
 #include "cJSON.h"
 
@@ -49,9 +51,18 @@ Digest Conflict::hash() const {
     cJSON_DeleteItemFromObjectCaseSensitive(o, "hash");  // not part of its own name
     std::string bytes = encode(o);
     cJSON_Delete(o);
-    std::string domain = "voidpalabra/conflict";
-    domain.push_back('\0');  // explicit: a NUL inside a literal would truncate
-    return sha256(domain + bytes);
+    /* Through the SPEC §3 header, like every other digest in this library.
+     *
+     * It used to build its own — `"voidpalabra/conflict"` plus a NUL — which left
+     * CANON_VERSION out, so an old and a new implementation could compute the same
+     * name for a conflict over encodings that had moved underneath them. Preventing
+     * exactly that is what the counter is for, and this was the only digest here
+     * not covered by it.
+     *
+     * Fixed on 2026-09-03, in the release that bumped the version for another
+     * reason, because the cheapest moment to move a hash is one where hashes are
+     * already moving. */
+    return enc::domain_digest("conflict", bytes, "");
 }
 
 cJSON* conflict_to_json(const Conflict& c) {
@@ -62,8 +73,14 @@ cJSON* conflict_to_json(const Conflict& c) {
     cJSON* o = cJSON_CreateObject();
     cJSON_AddStringToObject(o, "kind", "conflict");
     cJSON* at = cJSON_CreateObject();
-    cJSON_AddStringToObject(at, "mantle", c.mantle.c_str());
-    if (!c.rune.empty()) cJSON_AddStringToObject(at, "rune", c.rune.c_str());
+    /* A glyph conflict is located by glyph name and nothing else — emitting an
+     * empty `mantle` beside it would invite a reader to look for one. */
+    if (!c.glyph.empty()) {
+        cJSON_AddStringToObject(at, "glyph", c.glyph.c_str());
+    } else {
+        cJSON_AddStringToObject(at, "mantle", c.mantle.c_str());
+        if (!c.rune.empty()) cJSON_AddStringToObject(at, "rune", c.rune.c_str());
+    }
     cJSON_AddStringToObject(at, "field", c.field.c_str());
     cJSON_AddItemToObject(o, "at", at);
 
@@ -92,7 +109,37 @@ std::vector<Conflict> conflicts(const Doc& doc, const JoinPolicy& policy) {
         for (const cJSON* r = runes ? runes->child : nullptr; r; r = r->next)
             scan_fields(get(r, "fields"), mname, r->string ? r->string : "", policy, out);
     }
+
+    /* CONCURRENT REDECLARATION. Void Core asked for this to be surfaced rather
+     * than merged, and the reason is the one that decided the granularity in
+     * enrich(): a merged schema is a type nobody authored. Two peers disagreeing
+     * about what `stat` means is a real disagreement, and the honest thing to hand
+     * back is both answers with an address.
+     *
+     * No policy lookup: `descriptor` has no declared join and must not acquire one
+     * by accident. `resolve` with an absent policy entry is what every other
+     * undeclared field gets, so this goes through the same path. */
+    const cJSON* glyphs = get(doc.root, "glyphs");
+    for (const cJSON* g = glyphs ? glyphs->child : nullptr; g; g = g->next) {
+        if (orset_from_json(get(g, "present")).empty()) continue;  // undeclared
+        const cJSON* fields = get(g, "fields");
+        for (const cJSON* f = fields ? fields->child : nullptr; f; f = f->next) {
+            Live l = resolve(f, policy.lookup(f->string ? f->string : ""));
+            if (!l.conflicted) continue;
+            Conflict c;
+            c.glyph = g->string ? g->string : "";
+            c.field = f->string ? f->string : "";
+            c.sides = l.values;
+            out.push_back(std::move(c));
+        }
+    }
+
     std::sort(out.begin(), out.end(), [](const Conflict& a, const Conflict& b) {
+        /* Glyph conflicts sort together and after mantle conflicts: they belong to
+         * the document rather than to any mantle, and a stable place in the list
+         * is what lets two peers enumerate them identically. */
+        if (a.glyph.empty() != b.glyph.empty()) return b.glyph.empty();
+        if (a.glyph != b.glyph) return a.glyph < b.glyph;
         if (a.mantle != b.mantle) return a.mantle < b.mantle;
         if (a.rune != b.rune) return a.rune < b.rune;
         return a.field < b.field;

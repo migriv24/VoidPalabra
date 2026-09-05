@@ -4,7 +4,7 @@
 	"cases":	[{
 			"name":	"an empty journal",
 			"in":	[],
-			"out":	"c:df208f607b9a5f1372cb837ff78be6dc294bcecf1bdc5dc698f90d2325bf7406"
+			"out":	"c:40f7ea7221089d36d1dfcb275c13b957d2092b6f56ea44f7dbcc0f886101d201"
 		}, {
 			"name":	"one pure mantle-slice command",
 			"in":	[{
@@ -16,7 +16,7 @@
 					"slice":	"undo",
 					"minted":	["rune_aaa"]
 				}],
-			"out":	"c:e7a037316d717cd8d78e88e7e364c05ad653d374351da4f4243e3ac1ac53a631"
+			"out":	"c:349221c9da3ad718f595c86d998fcdaa31b2e126ce2dd14a9928b72072ac39c0"
 		}, {
 			"name":	"a save appended — must equal (VoidCore:SPEC §6.2: keep only pure)",
 			"in":	[{
@@ -36,7 +36,7 @@
 					"slice":	"host",
 					"minted":	[]
 				}],
-			"out":	"c:e7a037316d717cd8d78e88e7e364c05ad653d374351da4f4243e3ac1ac53a631"
+			"out":	"c:349221c9da3ad718f595c86d998fcdaa31b2e126ce2dd14a9928b72072ac39c0"
 		}, {
 			"name":	"a deploy appended too — must equal",
 			"in":	[{
@@ -64,7 +64,7 @@
 					"slice":	"host",
 					"minted":	[]
 				}],
-			"out":	"c:e7a037316d717cd8d78e88e7e364c05ad653d374351da4f4243e3ac1ac53a631"
+			"out":	"c:349221c9da3ad718f595c86d998fcdaa31b2e126ce2dd14a9928b72072ac39c0"
 		}, {
 			"name":	"a placement appended — must equal (view is not versioned content)",
 			"in":	[{
@@ -84,7 +84,7 @@
 					"slice":	"view",
 					"minted":	[]
 				}],
-			"out":	"c:e7a037316d717cd8d78e88e7e364c05ad653d374351da4f4243e3ac1ac53a631"
+			"out":	"c:349221c9da3ad718f595c86d998fcdaa31b2e126ce2dd14a9928b72072ac39c0"
 		}, {
 			"name":	"a pure host-slice command appended — must equal (it changed nothing)",
 			"in":	[{
@@ -104,7 +104,7 @@
 					"slice":	"host",
 					"minted":	[]
 				}],
-			"out":	"c:e7a037316d717cd8d78e88e7e364c05ad653d374351da4f4243e3ac1ac53a631"
+			"out":	"c:349221c9da3ad718f595c86d998fcdaa31b2e126ce2dd14a9928b72072ac39c0"
 		}, {
 			"name":	"the same seq numbers renumbered — must equal (seq is not the order)",
 			"in":	[{
@@ -116,7 +116,7 @@
 					"slice":	"undo",
 					"minted":	["rune_aaa"]
 				}],
-			"out":	"c:e7a037316d717cd8d78e88e7e364c05ad653d374351da4f4243e3ac1ac53a631"
+			"out":	"c:349221c9da3ad718f595c86d998fcdaa31b2e126ce2dd14a9928b72072ac39c0"
 		}, {
 			"name":	"a second command — must DIFFER",
 			"in":	[{
@@ -136,7 +136,7 @@
 					"slice":	"undo",
 					"minted":	[]
 				}],
-			"out":	"c:87b31ab133c9908a78b4233a6465fdb8db10d28145e1c8522009f83d7673bfbe"
+			"out":	"c:e68c52e605a42371967a9ecdc9db0df485efd2d93e0630de9b344d64dbdfb74f"
 		}, {
 			"name":	"the same two commands in the other order — must DIFFER (order in one journal is real)",
 			"in":	[{
@@ -156,7 +156,7 @@
 					"slice":	"undo",
 					"minted":	["rune_aaa"]
 				}],
-			"out":	"c:6aa8058813df72c93685f9fc986939408d9cd02f8ad780c1fa9ab2d719e1b092"
+			"out":	"c:098c0476a7de506400179ad3ce701be6fa126743b01cc2ad396d31357ba2cc5a"
 		}, {
 			"name":	"undo records — must DIFFER (a record that omits taking a change back lies)",
 			"in":	[{
@@ -184,7 +184,7 @@
 					"slice":	"undo",
 					"minted":	["rune_aaa"]
 				}],
-			"out":	"c:65fd18ec0810842e689f573b3210dd3e780c0dd67b664b622f79046231a99f71"
+			"out":	"c:59a0907526e135b89e9db5045ea9ce1f3207115c1f8111fedafdb22a9b63092f"
 		}, {
 			"name":	"an entry with an unknown slice — refused rather than defaulted",
 			"in":	[{

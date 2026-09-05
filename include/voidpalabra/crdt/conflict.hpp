@@ -23,9 +23,18 @@ namespace voidpalabra {
  * hash. It can be stored, synced, queried, tagged, and rendered." So it is a
  * struct with an address, not a diagnostic string. */
 struct Conflict {
-    std::string mantle;              // mantle name
+    std::string mantle;              // mantle name; empty for a glyph conflict
     std::string rune;                // spirit.id; empty for a mantle-level field
-    std::string field;               // e.g. "content.body", "domain"
+    /* Set only for a concurrent REDECLARATION — two peers gave one glyph name two
+     * schemas (VoidCore:SPEC.md §2, 0.2.14). When this is non-empty, `mantle` and
+     * `rune` are empty and `field` is "descriptor": a declaration is a property of
+     * the document, not of any one mantle.
+     *
+     * A separate member rather than a sentinel in `mantle`, because "" as a
+     * stand-in for "not in a mantle" is exactly how a renderer ends up printing a
+     * conflict with a blank where a name should be. */
+    std::string glyph;
+    std::string field;               // e.g. "content.body", "domain", "descriptor"
     std::vector<std::string> sides;  // canonical value bytes, canonically ordered
 
     /* The conflict's own content address. Two peers who see the same divergence

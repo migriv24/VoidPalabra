@@ -33,7 +33,10 @@ namespace crdt {
  *             "fields":  { "glyph": <Reg>, "facets.who": <Reg>, ...,
  *                          "content.<key>": <Reg>, "placement": <Reg> },
  *             "tags":    <OrSet> } },
- *         "edges":   <OrSet> } } }
+ *         "edges":   <OrSet> } },
+ *     "glyphs":  { "<glyph name>": {
+ *         "present": <OrSet>,
+ *         "fields":  { "descriptor": <Reg> } } } }
  *
  *   <OrSet> = { "a": { "<tag>": <hex value> }, "r": [ "<tag>", ... ] }
  *
@@ -41,6 +44,13 @@ namespace crdt {
  * peers renaming one rune are editing a single object rather than creating two.
  * Mantles are keyed by name, which is what Core makes unique (§3.4); a mantle's
  * `id` rides as an ordinary field.
+ *
+ * A glyph declaration is ONE register holding the whole descriptor, which is the
+ * opposite of how a rune's content is split. Per-key registers keep two peers
+ * editing different fields of one rune from conflicting; per-key registers over a
+ * SCHEMA would let a merge assemble a descriptor neither peer declared. The value
+ * stored is the descriptor with `source` excluded (SPEC §4.5) — the same rule that
+ * computes its name, shared rather than reimplemented.
  */
 
 extern const char* const kFacets[6];

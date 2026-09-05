@@ -192,14 +192,23 @@ slice is** — Palabra's cut is defined over exactly that boundary.
 
 **Owner:** Void Core. **Blocks:** what an utterance may target.
 
-**Palabra has an opinion, recorded 2026-07-27**, and should state it rather than
-wait: **an utterance may target `mantles` and nothing else.** `domains`, `bindings`
-and `config` are **peer-local resolution**, not versioned content — see
+**Palabra has an opinion, recorded 2026-07-27 and widened 2026-09-03**: **an
+utterance may target `mantles` and `glyphs`.** `domains`, `bindings` and `config`
+are **peer-local resolution**, not versioned content — see
 [utterance](/concepts/utterance.md) §"What an utterance may target". The forcing
 argument is not aesthetic: a `domain` carries real deploy and build commands, so
 syncing one as content means **one device's deploy command executes on another
 device**. That is a correctness bug and a serious security hole, and it would arrive
 by default if Palabra simply versioned "the state document."
+
+**`glyphs` was added at Void Core's argument (0.2.14), and it is worth recording
+that the rule survived contact with a new key rather than being bent to fit one.**
+The test the table encodes is not *"is this data?"* — `domains` is data. It is
+whether a key describes **the world this machine sits in** or **the thing the user
+made**. A declaration is the second, it executes nothing, and omitting it makes a
+sync that looks successful deliver content its receiver cannot read. The one
+sub-key that *does* describe this machine — a descriptor's `source` — is excluded,
+which is the same rule applied one level down.
 
 ---
 

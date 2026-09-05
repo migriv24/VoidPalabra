@@ -18,8 +18,13 @@ namespace voidpalabra {
 
 /* --- documents ----------------------------------------------------------- */
 
-/* The enriched form of a Void Core slice: the versioned slice (`mantles`, and
- * nothing else — SPEC.md §4.4) with per-element CRDT metadata attached.
+/* The enriched form of a Void Core slice: the versioned slice — `mantles` and
+ * `glyphs`, SPEC.md §4.4 — with per-element CRDT metadata attached.
+ *
+ * `glyphs` joined on 2026-09-03, when Void Core 0.2.14 introduced declarations.
+ * Without them a merge delivers a peer's runes and not the schemas that say what
+ * those runes mean, so the content arrives present in the document and unreachable
+ * through the projection.
  *
  * Held as JSON so it is storable, canonicalizable, and inspectable with the tools
  * that already exist. Palabra invents no binary object model. */
@@ -59,10 +64,24 @@ Doc enrich(const cJSON* state, Mint& mint);
  * in a single-valued Core document, and choosing silently is only safe when the
  * caller knows a conflict is there.
  *
- * ROUND-TRIP LAW: flatten(enrich(x)) == x, for any state x with no conflicts.
- * This is deliberately the same law `VoidCore:scry/roundtrip.py` holds a Lens to
- * (`unscry(scry(x)) == x`), and for the same reason: a mapping written separately
- * for each direction drifts into silent data loss. Property-tested. */
+ * ROUND-TRIP LAW: flatten(enrich(x)) == x FOR THE VERSIONED SLICE, for any state
+ * x with no conflicts — compared through the canonical form, which is defined over
+ * that slice. Deliberately the same law `VoidCore:scry/roundtrip.py` holds a Lens
+ * to (`unscry(scry(x)) == x`), and for the same reason: a mapping written
+ * separately for each direction drifts into silent data loss. Property-tested.
+ *
+ * READ THE SCOPE, because the short form of that sentence is a trap. `flatten`
+ * returns THE SLICE, not your document. `config`, `domains`, `bindings` and
+ * `active` are not in it — they are peer-local resolution and were never
+ * versioned. A caller who writes this result back as their whole state document
+ * loses all four.
+ *
+ * The correct use is to SPLICE: lift `mantles` and `glyphs` out of the result and
+ * put them into the document you already hold, which keeps this device's domains
+ * and config its own. Void Hormiga does exactly that, and it is why nothing broke
+ * there when `glyphs` was added — but a host that rebuilds its document key by key
+ * from its own model would have dropped the new key silently, which is Void Core
+ * 0.2.14 §2(c)'s warning. The document will grow keys again. */
 Doc flatten(const Doc& doc, const JoinPolicy& policy = {});
 
 /* The merge. Commutative, associative, idempotent — property-tested. */

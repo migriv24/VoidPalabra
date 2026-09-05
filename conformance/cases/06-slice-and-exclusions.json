@@ -1,6 +1,6 @@
 {
 	"kind":	"slice",
-	"about":	"SPEC §4.4 — the versioned slice is `mantles` and nothing else",
+	"about":	"SPEC §4.4 — what the versioned slice contains (`mantles` + `glyphs`) and what stays peer-local",
 	"cases":	[{
 			"name":	"bare state",
 			"in":	{
@@ -23,7 +23,7 @@
 						}
 					}]
 			},
-			"out":	"v:ad239d983af0bad5a97850aa0b6be3e586ecccb92a284648a24ba345c4bf52f3"
+			"out":	"v:a1c36b970eb89bde04dc315b3b90afb61cfe3c54b70514e462e9000b923b1ded"
 		}, {
 			"name":	"with peer-local fields — must equal bare",
 			"in":	{
@@ -65,13 +65,61 @@
 				},
 				"_baseline":	[]
 			},
-			"out":	"v:ad239d983af0bad5a97850aa0b6be3e586ecccb92a284648a24ba345c4bf52f3"
+			"out":	"v:a1c36b970eb89bde04dc315b3b90afb61cfe3c54b70514e462e9000b923b1ded"
+		}, {
+			"name":	"with a glyph declaration — must DIFFER (a schema IS versioned, unlike a domain)",
+			"in":	{
+				"mantles":	[{
+						"id":	"m1",
+						"name":	"demo",
+						"runes":	[{
+								"spirit":	{
+									"id":	"rune_1",
+									"name":	"intro"
+								},
+								"glyph":	"text",
+								"tags":	["draft"],
+								"content":	{
+									"value":	"hello"
+								}
+							}],
+						"layout":	{
+							"edges":	[]
+						}
+					}],
+				"domains":	{
+					"d":	{
+						"name":	"d",
+						"deploy":	"rm -rf /"
+					}
+				},
+				"bindings":	[{
+						"id":	"b1"
+					}],
+				"config":	{
+					"actor":	"someone"
+				},
+				"active":	{
+					"mantle":	"demo"
+				},
+				"scripts":	{
+					"x":	"ls"
+				},
+				"_baseline":	[],
+				"glyphs":	{
+					"stat":	{
+						"glyph":	"stat",
+						"kind":	"measure"
+					}
+				}
+			},
+			"out":	"v:f3c4dfc3ca5a1f89770d927d2f61f2d68279c60a89c51a2c053d1a35d7fa9441"
 		}, {
 			"name":	"empty state",
 			"in":	{
 				"mantles":	[]
 			},
-			"out":	"v:ea243e8e6946c688bde73f4d94c6d4500edbe4ab478f57bcd4ce9f9b4d447c36"
+			"out":	"v:7a6595aa4a0e02d3ff0877d868bb404f328bf35fd48cafba5a95c510c51d9379"
 		}, {
 			"name":	"mantle order irrelevant",
 			"in":	{
@@ -83,7 +131,7 @@
 						"name":	"two"
 					}]
 			},
-			"out":	"v:ec92a8362425730523d06a7a8cace6cbb62bcffa0d9a9cefebfc57a55b707187"
+			"out":	"v:0bf3807c0a02d8ccca3f17ce5098f434fe31d4bea54b561cd8100286d1a2868d"
 		}, {
 			"name":	"mantle order reversed — must equal",
 			"in":	{
@@ -95,6 +143,6 @@
 						"name":	"one"
 					}]
 			},
-			"out":	"v:ec92a8362425730523d06a7a8cace6cbb62bcffa0d9a9cefebfc57a55b707187"
+			"out":	"v:0bf3807c0a02d8ccca3f17ce5098f434fe31d4bea54b561cd8100286d1a2868d"
 		}]
 }

@@ -12,7 +12,7 @@
 				"minted":	["rune_9f2c"],
 				"seq":	1
 			},
-			"out":	"u:04dd26283eba9ef5a1a4fd0d6373d8b882de699194a70602c3cbf27f87fad539"
+			"out":	"u:1e0a297f8eed186251efaa3a6ac7fd92ebd28a462a827b63994bf9f42d26fd5e"
 		}, {
 			"name":	"parents reordered — must equal baseline",
 			"in":	{
@@ -24,7 +24,7 @@
 				"minted":	["rune_9f2c"],
 				"seq":	1
 			},
-			"out":	"u:04dd26283eba9ef5a1a4fd0d6373d8b882de699194a70602c3cbf27f87fad539"
+			"out":	"u:1e0a297f8eed186251efaa3a6ac7fd92ebd28a462a827b63994bf9f42d26fd5e"
 		}, {
 			"name":	"a repeated parent — must equal",
 			"in":	{
@@ -36,7 +36,7 @@
 				"minted":	["rune_9f2c"],
 				"seq":	1
 			},
-			"out":	"u:04dd26283eba9ef5a1a4fd0d6373d8b882de699194a70602c3cbf27f87fad539"
+			"out":	"u:1e0a297f8eed186251efaa3a6ac7fd92ebd28a462a827b63994bf9f42d26fd5e"
 		}, {
 			"name":	"seq changed from 1 to 9999 — must equal",
 			"in":	{
@@ -48,7 +48,7 @@
 				"minted":	["rune_9f2c"],
 				"seq":	9999
 			},
-			"out":	"u:04dd26283eba9ef5a1a4fd0d6373d8b882de699194a70602c3cbf27f87fad539"
+			"out":	"u:1e0a297f8eed186251efaa3a6ac7fd92ebd28a462a827b63994bf9f42d26fd5e"
 		}, {
 			"name":	"seq absent entirely — must equal",
 			"in":	{
@@ -59,7 +59,7 @@
 				"parents":	["u:aaa", "u:bbb"],
 				"minted":	["rune_9f2c"]
 			},
-			"out":	"u:04dd26283eba9ef5a1a4fd0d6373d8b882de699194a70602c3cbf27f87fad539"
+			"out":	"u:1e0a297f8eed186251efaa3a6ac7fd92ebd28a462a827b63994bf9f42d26fd5e"
 		}, {
 			"name":	"two minted ids, listed one way",
 			"in":	{
@@ -71,7 +71,7 @@
 				"minted":	["rune_z", "rune_a"],
 				"seq":	4
 			},
-			"out":	"u:b9000d3a9e1dbbc2529ebdd23f317b383f2a285c013f8debf779a2bb05fb772e"
+			"out":	"u:621e0c4a19131826974ab4958161186178e016645102eff5d282a4555e6a988f"
 		}, {
 			"name":	"the same two, listed the other way — must equal",
 			"in":	{
@@ -83,7 +83,7 @@
 				"minted":	["rune_a", "rune_z"],
 				"seq":	4
 			},
-			"out":	"u:b9000d3a9e1dbbc2529ebdd23f317b383f2a285c013f8debf779a2bb05fb772e"
+			"out":	"u:621e0c4a19131826974ab4958161186178e016645102eff5d282a4555e6a988f"
 		}, {
 			"name":	"a different command — must DIFFER",
 			"in":	{
@@ -95,7 +95,7 @@
 				"minted":	["rune_9f2c"],
 				"seq":	1
 			},
-			"out":	"u:f6cf0f7fa86bf374e124930499585fe3f2097b2ebf31c3e0a02b2bfda12d2c87"
+			"out":	"u:5234c4b2ac0723468b06305dfe8ffa637819734da0351c4edeffffb14ac9f506"
 		}, {
 			"name":	"a different parent set — must DIFFER",
 			"in":	{
@@ -107,7 +107,7 @@
 				"minted":	["rune_9f2c"],
 				"seq":	1
 			},
-			"out":	"u:19e7f2075c551913569a5504a141cdfdfb7053da36c3c64dbc500b6fc50d973e"
+			"out":	"u:322b40e2650c1c7bfd9b3c8448f7ec6df0ebab84dbf9b4ee4b45fb6e590d606c"
 		}, {
 			"name":	"a different minted id — must DIFFER",
 			"in":	{
@@ -119,7 +119,7 @@
 				"minted":	["rune_0000"],
 				"seq":	1
 			},
-			"out":	"u:2c0c1739ff959f6431cfb5b0d322796527a7c922d16c9c0d95885b3ce0212e76"
+			"out":	"u:3c166cff30dd1ed337cf33c1d53a8f96bec50620afdda1070473411f94347539"
 		}, {
 			"name":	"attributed to ada",
 			"in":	{
@@ -131,7 +131,7 @@
 				"minted":	[],
 				"seq":	2
 			},
-			"out":	"u:993a27b0fb295ac1fac2811d54405f4492fcddb67250d2f60d8d3fe4e244b22b"
+			"out":	"u:14e2ecfc52fcd45d296542703ac2fa30b6e4b4e0a7143369316c9353edf8491e"
 		}, {
 			"name":	"attributed to grace — must DIFFER",
 			"in":	{
@@ -143,7 +143,7 @@
 				"minted":	[],
 				"seq":	2
 			},
-			"out":	"u:494bf326ce7db3a84f9035efa1cd2a02078536f4b10cf641b1f449968f516c12"
+			"out":	"u:83e149d539c77cf15bc89fff82f76db0b39f935213d5c4e3e9e8debe0239e7cd"
 		}, {
 			"name":	"unattributed (who null) — must DIFFER",
 			"in":	{
@@ -155,7 +155,7 @@
 				"minted":	[],
 				"seq":	2
 			},
-			"out":	"u:b3f002a610b4a89c71383674eedbf0e59f8b2cdae325b1842a121e1ce5d91c53"
+			"out":	"u:bf04a767bee70075fc3f718dcda6cb16e414231b1560c44bc1e83b30af80bb38"
 		}, {
 			"name":	"attributed to the empty actor — must DIFFER from unattributed",
 			"in":	{
@@ -167,7 +167,7 @@
 				"minted":	[],
 				"seq":	2
 			},
-			"out":	"u:4399f5334ebf8a51c61765e1919091101155206c40622991d0b168c913af7f46"
+			"out":	"u:5a8bf7c2e5893f82e11fde8ed8f9875d6f5eea45d872e874c48b90134474fd63"
 		}, {
 			"name":	"grouped — must DIFFER",
 			"in":	{
@@ -179,7 +179,7 @@
 				"minted":	[],
 				"seq":	2
 			},
-			"out":	"u:b8c9c1b6252f498c9ea50b270352dfca5fd5ae05096074a14f1be098087857c0"
+			"out":	"u:592b10df42282f4e87450732285787ae8445f113afa295ea3b82a93113e512f2"
 		}, {
 			"name":	"the same verb, a different canonical line — must DIFFER",
 			"in":	{
@@ -191,7 +191,7 @@
 				"minted":	[],
 				"seq":	3
 			},
-			"out":	"u:05c05d4e01f2f49d67da2c804ab848fd3d1578be6890f476d9e5f7ead46f2117"
+			"out":	"u:4f967c8fce4cfe355b2352441237fd08d04ff7879ab35318ff85e99650309fcf"
 		}, {
 			"name":	"an alias desugars to the canonical line — must equal",
 			"in":	{
@@ -203,6 +203,6 @@
 				"minted":	[],
 				"seq":	88
 			},
-			"out":	"u:05c05d4e01f2f49d67da2c804ab848fd3d1578be6890f476d9e5f7ead46f2117"
+			"out":	"u:4f967c8fce4cfe355b2352441237fd08d04ff7879ab35318ff85e99650309fcf"
 		}]
 }

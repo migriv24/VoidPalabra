@@ -46,8 +46,19 @@ namespace voidpalabra {
  * v2 (2026-07-27): dropped the `rune_order` policy after Void Core ruled rune
  * order non-semantic (SPEC §4). Bumped within hours of v1, deliberately: the rule
  * is "if the bytes move, bump", and starting to reason case-by-case about whether
- * a change "really counts" is how this kind of guard rots. */
-inline constexpr int kCanonVersion = 2;
+ * a change "really counts" is how this kind of guard rots.
+ *
+ * v3 (2026-09-03): `glyphs` joined the versioned slice after Void Core 0.2.14
+ * added `state.glyphs` (VoidCore:SPEC.md §2). The slice is now a two-member map
+ * rather than a bare set of mantles, so EVERY name moves — including for a
+ * document that declares no glyphs at all.
+ *
+ * That last part was a choice. The bytes could have been left alone for documents
+ * with no `glyphs` key by encoding the slice conditionally, and that was rejected:
+ * it would make "absent" and "empty" two different states, and it would mean the
+ * encoding of a slice depended on which keys happened to be in it. A uniform map
+ * costs one version bump once; a conditional encoding costs a question forever. */
+inline constexpr int kCanonVersion = 3;
 
 /* A value that has no single honest byte form, or state that violates SPEC. */
 class CanonicalError : public std::runtime_error {
@@ -94,14 +105,23 @@ std::string canon_mantle(const cJSON* mantle, const Policy& policy = {});
 
 /* Canonical bytes of the VERSIONED SLICE of a Void Core state document.
  *
- * That slice is `mantles` and nothing else, per okf/concepts/utterance.md
- * §"What an utterance may target". `domains`, `bindings` and `config` are
- * peer-local resolution — a domain carries real deploy commands (SPEC §3.5), so
+ * That slice is `mantles` and `glyphs` — the content, and the schemas that say
+ * what the content means. `domains`, `bindings` and `config` are peer-local
+ * resolution: a domain carries real deploy commands (VoidCore:SPEC.md §3.5), so
  * syncing one would run one device's deploy on another. `active` is a cursor and
  * `_baseline` is dirty-tracking; neither is content.
  *
+ * `glyphs` was added 2026-09-03, at Void Core's argument, and the line it settles
+ * is worth stating because it is not the obvious one. The test is not "is this
+ * key data?" — `domains` is data. The test is whether the key describes THE WORLD
+ * THIS MACHINE SITS IN or THE THING THE USER MADE. A declaration is the second:
+ * without it the runes you already synced arrive readable-as-JSON and unreachable
+ * through the projection, which is a sync that looks like it worked.
+ *
  * Mantles are a set keyed by their (unique) name: their order in the array is an
- * artifact of creation, not information. */
+ * artifact of creation, not information. Glyph declarations are a map keyed by
+ * glyph name, and each descriptor's `source` key is excluded — it records how THIS
+ * peer resolved the declaration, not what the type is. */
 std::string canon_slice(const cJSON* state, const Policy& policy = {});
 
 /* Encode an arbitrary JSON value. Sequences keep their order — the conservative

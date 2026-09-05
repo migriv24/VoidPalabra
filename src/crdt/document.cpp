@@ -5,6 +5,8 @@
  */
 #include "internal.hpp"
 
+#include "encoding/internal.hpp"
+
 #include "voidpalabra/canonical.hpp"
 #include "cJSON.h"
 
@@ -137,6 +139,47 @@ Doc enrich(const cJSON* state, Mint& mint) {
         cJSON_AddItemToObject(mo, "edges", orset_to_json(edges));
 
         cJSON_AddItemToObject(mantles, mname->valuestring, mo);
+    }
+
+    /* GLYPH DECLARATIONS (VoidCore:SPEC.md §2, 0.2.14).
+     *
+     * One register per declaration, holding the WHOLE descriptor — deliberately
+     * not one register per descriptor key, which is what a rune's `content` gets.
+     *
+     * The two are different objects and want different granularity. Splitting
+     * content per key means two peers editing different fields of one rune do not
+     * conflict, which is most of what makes concurrent editing bearable. Splitting
+     * a SCHEMA per key would let a merge synthesize a descriptor neither peer
+     * declared — peer A's `fields` with peer B's `kind` — and hand it back as a
+     * type somebody authored. A schema that nobody wrote is worse than a conflict
+     * somebody has to answer, so the whole descriptor is one value and concurrent
+     * redeclaration surfaces through `conflicts()`.
+     *
+     * That is also what Void Core asked for: "two peers gave the same type two
+     * schemas [...] a disagreement a human should settle rather than something to
+     * guess at." */
+    cJSON* glyphs = cJSON_CreateObject();
+    cJSON_AddItemToObject(doc.root, "glyphs", glyphs);
+    const cJSON* gin = get(state, "glyphs");
+    if (gin && cJSON_IsObject(gin)) {
+        for (const cJSON* g = gin->child; g; g = g->next) {
+            if (!g->string) continue;
+            cJSON* go = cJSON_CreateObject();
+            OrSet present;
+            present.add(mint.next(), "");
+            cJSON_AddItemToObject(go, "present", orset_to_json(present));
+            cJSON* fields = cJSON_CreateObject();
+            /* Not `add_field`, which encodes the value verbatim. A declaration's
+             * `source` key is peer-local resolution and is excluded from the
+             * canonical form (SPEC §4.4), so it must be excluded from the register
+             * too — otherwise two peers differing only in how they resolved one
+             * schema compute the same version name and still report a conflict. */
+            OrSet reg;
+            reg.add(mint.next(), enc::canon_glyph_descriptor(g));
+            cJSON_AddItemToObject(fields, "descriptor", orset_to_json(reg));
+            cJSON_AddItemToObject(go, "fields", fields);
+            cJSON_AddItemToObject(glyphs, g->string, go);
+        }
     }
     return doc;
 }
@@ -323,6 +366,36 @@ Doc flatten(const Doc& doc, const JoinPolicy& policy) {
         cJSON_AddItemToObject(mo, "rules", cJSON_CreateArray());
 
         cJSON_AddItemToArray(mantles, mo);
+    }
+
+    /* Glyph declarations come back as the object Core wrote, keyed by name.
+     *
+     * Emitted only when there is at least one, so a document that never declared
+     * anything flattens to exactly the shape it had. Adding an empty `glyphs: {}`
+     * to every flattened slice would be a change a caller has to notice, and the
+     * canonical form already treats absent and empty as the same state. */
+    const cJSON* gin = get(doc.root, "glyphs");
+    std::vector<const cJSON*> gs;
+    for (const cJSON* g = gin ? gin->child : nullptr; g; g = g->next) {
+        if (orset_from_json(get(g, "present")).empty()) continue;  // undeclared
+        gs.push_back(g);
+    }
+    if (!gs.empty()) {
+        std::sort(gs.begin(), gs.end(), [](const cJSON* a, const cJSON* b) {
+            return std::strcmp(a->string, b->string) < 0;
+        });
+        cJSON* glyphs = cJSON_CreateObject();
+        cJSON_AddItemToObject(out.root, "glyphs", glyphs);
+        for (const cJSON* g : gs) {
+            Live l = live_of(get(get(g, "fields"), "descriptor"));
+            if (l.values.empty()) continue;
+            /* A conflicted descriptor resolves the same way a conflicted field
+             * does — by the policy, lowest-ordered — and the caller is expected to
+             * have read `conflicts()`. `flatten` cannot represent two schemas for
+             * one name any more than it can two values for one field. */
+            cJSON* d = decode(l.values.front());
+            if (d) cJSON_AddItemToObject(glyphs, g->string, d);
+        }
     }
     return out;
 }

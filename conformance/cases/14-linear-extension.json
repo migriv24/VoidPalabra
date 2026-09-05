@@ -4,7 +4,7 @@
 	"cases":	[{
 			"name":	"a diamond, delivered in dependency order",
 			"in":	[{
-					"hash":	"u:1c883a439d5db6bd2212ab862636b5e01dffb900fcb8ca7ecc738aab002fa13d",
+					"hash":	"u:1c2ff5e2acc19b3053d7b54b418e81e7844a70f001d563e922b281681dcb44ef",
 					"parents":	[],
 					"command":	"rune new text shared",
 					"verb":	"rune",
@@ -13,8 +13,8 @@
 					"group":	null,
 					"seq":	1
 				}, {
-					"hash":	"u:2e1a93018c8d585e1b84b0249092c98bf456ac644e0a98b3523ddc70819a4992",
-					"parents":	["u:1c883a439d5db6bd2212ab862636b5e01dffb900fcb8ca7ecc738aab002fa13d"],
+					"hash":	"u:9d2f6d76f3c51e071eb87125fa855ae0354232774a640e98b19638831054fa6b",
+					"parents":	["u:1c2ff5e2acc19b3053d7b54b418e81e7844a70f001d563e922b281681dcb44ef"],
 					"command":	"tag shared +ada",
 					"verb":	"tag",
 					"who":	"ada",
@@ -22,8 +22,8 @@
 					"group":	null,
 					"seq":	2
 				}, {
-					"hash":	"u:87b0630a414c4c21bf78c682d795edc8b42e0a886b9f8e024d52bc3437406f1c",
-					"parents":	["u:1c883a439d5db6bd2212ab862636b5e01dffb900fcb8ca7ecc738aab002fa13d"],
+					"hash":	"u:34ffea2ae79277aeff94eefc00bf6ed5445aba514b50b063fe061ac2c89d4a84",
+					"parents":	["u:1c2ff5e2acc19b3053d7b54b418e81e7844a70f001d563e922b281681dcb44ef"],
 					"command":	"tag shared +grace",
 					"verb":	"tag",
 					"who":	"grace",
@@ -31,8 +31,8 @@
 					"group":	null,
 					"seq":	2
 				}, {
-					"hash":	"u:ba15560af82f0ad80eeeb3bb709213ca16142bcfb1dcd5a355710e2c4815d6eb",
-					"parents":	["u:2e1a93018c8d585e1b84b0249092c98bf456ac644e0a98b3523ddc70819a4992", "u:87b0630a414c4c21bf78c682d795edc8b42e0a886b9f8e024d52bc3437406f1c"],
+					"hash":	"u:99ca33c49cd9b92ec0661416c8dfe8acfad7f76c2c1944a76517a62f4aa17017",
+					"parents":	["u:34ffea2ae79277aeff94eefc00bf6ed5445aba514b50b063fe061ac2c89d4a84", "u:9d2f6d76f3c51e071eb87125fa855ae0354232774a640e98b19638831054fa6b"],
 					"command":	"tag shared +both",
 					"verb":	"tag",
 					"who":	"ada",
@@ -40,8 +40,8 @@
 					"group":	null,
 					"seq":	3
 				}, {
-					"hash":	"u:49f9baf47697e94dd4862f63ddf2233f9adb6dd074093d704235310f8e5e1f27",
-					"parents":	["u:ba15560af82f0ad80eeeb3bb709213ca16142bcfb1dcd5a355710e2c4815d6eb"],
+					"hash":	"u:91e2145d0e846fb24347c5af3f3bfe1c4a91d89ae2473c50ff4b18aeb8cb769e",
+					"parents":	["u:99ca33c49cd9b92ec0661416c8dfe8acfad7f76c2c1944a76517a62f4aa17017"],
 					"command":	"rune new text after",
 					"verb":	"rune",
 					"who":	"ada",
@@ -49,12 +49,12 @@
 					"group":	null,
 					"seq":	4
 				}],
-			"out":	"1c883a43 2e1a9301 87b0630a ba15560a 49f9baf4"
+			"out":	"1c2ff5e2 34ffea2a 9d2f6d76 99ca33c4 91e2145d"
 		}, {
 			"name":	"the same diamond, delivered reversed — must equal",
 			"in":	[{
-					"hash":	"u:49f9baf47697e94dd4862f63ddf2233f9adb6dd074093d704235310f8e5e1f27",
-					"parents":	["u:ba15560af82f0ad80eeeb3bb709213ca16142bcfb1dcd5a355710e2c4815d6eb"],
+					"hash":	"u:91e2145d0e846fb24347c5af3f3bfe1c4a91d89ae2473c50ff4b18aeb8cb769e",
+					"parents":	["u:99ca33c49cd9b92ec0661416c8dfe8acfad7f76c2c1944a76517a62f4aa17017"],
 					"command":	"rune new text after",
 					"verb":	"rune",
 					"who":	"ada",
@@ -62,8 +62,8 @@
 					"group":	null,
 					"seq":	4
 				}, {
-					"hash":	"u:ba15560af82f0ad80eeeb3bb709213ca16142bcfb1dcd5a355710e2c4815d6eb",
-					"parents":	["u:2e1a93018c8d585e1b84b0249092c98bf456ac644e0a98b3523ddc70819a4992", "u:87b0630a414c4c21bf78c682d795edc8b42e0a886b9f8e024d52bc3437406f1c"],
+					"hash":	"u:99ca33c49cd9b92ec0661416c8dfe8acfad7f76c2c1944a76517a62f4aa17017",
+					"parents":	["u:34ffea2ae79277aeff94eefc00bf6ed5445aba514b50b063fe061ac2c89d4a84", "u:9d2f6d76f3c51e071eb87125fa855ae0354232774a640e98b19638831054fa6b"],
 					"command":	"tag shared +both",
 					"verb":	"tag",
 					"who":	"ada",
@@ -71,8 +71,8 @@
 					"group":	null,
 					"seq":	3
 				}, {
-					"hash":	"u:87b0630a414c4c21bf78c682d795edc8b42e0a886b9f8e024d52bc3437406f1c",
-					"parents":	["u:1c883a439d5db6bd2212ab862636b5e01dffb900fcb8ca7ecc738aab002fa13d"],
+					"hash":	"u:34ffea2ae79277aeff94eefc00bf6ed5445aba514b50b063fe061ac2c89d4a84",
+					"parents":	["u:1c2ff5e2acc19b3053d7b54b418e81e7844a70f001d563e922b281681dcb44ef"],
 					"command":	"tag shared +grace",
 					"verb":	"tag",
 					"who":	"grace",
@@ -80,8 +80,8 @@
 					"group":	null,
 					"seq":	2
 				}, {
-					"hash":	"u:2e1a93018c8d585e1b84b0249092c98bf456ac644e0a98b3523ddc70819a4992",
-					"parents":	["u:1c883a439d5db6bd2212ab862636b5e01dffb900fcb8ca7ecc738aab002fa13d"],
+					"hash":	"u:9d2f6d76f3c51e071eb87125fa855ae0354232774a640e98b19638831054fa6b",
+					"parents":	["u:1c2ff5e2acc19b3053d7b54b418e81e7844a70f001d563e922b281681dcb44ef"],
 					"command":	"tag shared +ada",
 					"verb":	"tag",
 					"who":	"ada",
@@ -89,7 +89,7 @@
 					"group":	null,
 					"seq":	2
 				}, {
-					"hash":	"u:1c883a439d5db6bd2212ab862636b5e01dffb900fcb8ca7ecc738aab002fa13d",
+					"hash":	"u:1c2ff5e2acc19b3053d7b54b418e81e7844a70f001d563e922b281681dcb44ef",
 					"parents":	[],
 					"command":	"rune new text shared",
 					"verb":	"rune",
@@ -98,12 +98,12 @@
 					"group":	null,
 					"seq":	1
 				}],
-			"out":	"1c883a43 2e1a9301 87b0630a ba15560a 49f9baf4"
+			"out":	"1c2ff5e2 34ffea2a 9d2f6d76 99ca33c4 91e2145d"
 		}, {
 			"name":	"the same diamond, shuffled — must equal",
 			"in":	[{
-					"hash":	"u:49f9baf47697e94dd4862f63ddf2233f9adb6dd074093d704235310f8e5e1f27",
-					"parents":	["u:ba15560af82f0ad80eeeb3bb709213ca16142bcfb1dcd5a355710e2c4815d6eb"],
+					"hash":	"u:91e2145d0e846fb24347c5af3f3bfe1c4a91d89ae2473c50ff4b18aeb8cb769e",
+					"parents":	["u:99ca33c49cd9b92ec0661416c8dfe8acfad7f76c2c1944a76517a62f4aa17017"],
 					"command":	"rune new text after",
 					"verb":	"rune",
 					"who":	"ada",
@@ -111,8 +111,8 @@
 					"group":	null,
 					"seq":	4
 				}, {
-					"hash":	"u:ba15560af82f0ad80eeeb3bb709213ca16142bcfb1dcd5a355710e2c4815d6eb",
-					"parents":	["u:2e1a93018c8d585e1b84b0249092c98bf456ac644e0a98b3523ddc70819a4992", "u:87b0630a414c4c21bf78c682d795edc8b42e0a886b9f8e024d52bc3437406f1c"],
+					"hash":	"u:99ca33c49cd9b92ec0661416c8dfe8acfad7f76c2c1944a76517a62f4aa17017",
+					"parents":	["u:34ffea2ae79277aeff94eefc00bf6ed5445aba514b50b063fe061ac2c89d4a84", "u:9d2f6d76f3c51e071eb87125fa855ae0354232774a640e98b19638831054fa6b"],
 					"command":	"tag shared +both",
 					"verb":	"tag",
 					"who":	"ada",
@@ -120,7 +120,7 @@
 					"group":	null,
 					"seq":	3
 				}, {
-					"hash":	"u:1c883a439d5db6bd2212ab862636b5e01dffb900fcb8ca7ecc738aab002fa13d",
+					"hash":	"u:1c2ff5e2acc19b3053d7b54b418e81e7844a70f001d563e922b281681dcb44ef",
 					"parents":	[],
 					"command":	"rune new text shared",
 					"verb":	"rune",
@@ -129,8 +129,8 @@
 					"group":	null,
 					"seq":	1
 				}, {
-					"hash":	"u:87b0630a414c4c21bf78c682d795edc8b42e0a886b9f8e024d52bc3437406f1c",
-					"parents":	["u:1c883a439d5db6bd2212ab862636b5e01dffb900fcb8ca7ecc738aab002fa13d"],
+					"hash":	"u:34ffea2ae79277aeff94eefc00bf6ed5445aba514b50b063fe061ac2c89d4a84",
+					"parents":	["u:1c2ff5e2acc19b3053d7b54b418e81e7844a70f001d563e922b281681dcb44ef"],
 					"command":	"tag shared +grace",
 					"verb":	"tag",
 					"who":	"grace",
@@ -138,8 +138,8 @@
 					"group":	null,
 					"seq":	2
 				}, {
-					"hash":	"u:2e1a93018c8d585e1b84b0249092c98bf456ac644e0a98b3523ddc70819a4992",
-					"parents":	["u:1c883a439d5db6bd2212ab862636b5e01dffb900fcb8ca7ecc738aab002fa13d"],
+					"hash":	"u:9d2f6d76f3c51e071eb87125fa855ae0354232774a640e98b19638831054fa6b",
+					"parents":	["u:1c2ff5e2acc19b3053d7b54b418e81e7844a70f001d563e922b281681dcb44ef"],
 					"command":	"tag shared +ada",
 					"verb":	"tag",
 					"who":	"ada",
@@ -147,12 +147,12 @@
 					"group":	null,
 					"seq":	2
 				}],
-			"out":	"1c883a43 2e1a9301 87b0630a ba15560a 49f9baf4"
+			"out":	"1c2ff5e2 34ffea2a 9d2f6d76 99ca33c4 91e2145d"
 		}, {
 			"name":	"a chain, delivered out of order — must DIFFER",
 			"in":	[{
-					"hash":	"u:037ed7cbc0e0998e7ce42cb247d96e84e3ab6c56b4059c5f477788d395febae6",
-					"parents":	["u:fd62fb2253fdca6723373925d0cc51b5d5df6224069ae950ed6f031eb04b7945"],
+					"hash":	"u:0118cd5b805c07ed01b81f9c2d7bdbd5ad245bff8d98e821d2725ead65034ecb",
+					"parents":	["u:5736a3ad7960f53db393961b03133a4b553638aa41e5b5981894f141a5e9a41a"],
 					"command":	"rune new text c",
 					"verb":	"rune",
 					"who":	null,
@@ -160,7 +160,7 @@
 					"group":	null,
 					"seq":	3
 				}, {
-					"hash":	"u:0a930f40394d2b8c99295fa996326d060c5f6fdfcd92df8ebf1db9797ab2da16",
+					"hash":	"u:75c91d1172516f397efc50612e806cfb72127546da3698e8cc06d63907fe67dc",
 					"parents":	[],
 					"command":	"rune new text a",
 					"verb":	"rune",
@@ -169,8 +169,8 @@
 					"group":	null,
 					"seq":	1
 				}, {
-					"hash":	"u:fd62fb2253fdca6723373925d0cc51b5d5df6224069ae950ed6f031eb04b7945",
-					"parents":	["u:0a930f40394d2b8c99295fa996326d060c5f6fdfcd92df8ebf1db9797ab2da16"],
+					"hash":	"u:5736a3ad7960f53db393961b03133a4b553638aa41e5b5981894f141a5e9a41a",
+					"parents":	["u:75c91d1172516f397efc50612e806cfb72127546da3698e8cc06d63907fe67dc"],
 					"command":	"rune new text b",
 					"verb":	"rune",
 					"who":	null,
@@ -178,11 +178,11 @@
 					"group":	null,
 					"seq":	2
 				}],
-			"out":	"0a930f40 fd62fb22 037ed7cb"
+			"out":	"75c91d11 5736a3ad 0118cd5b"
 		}, {
 			"name":	"two roots that never met — must DIFFER",
 			"in":	[{
-					"hash":	"u:605de916f7f91dd75bd3e47a7680e0315f52dcd264315495b0ca75450cb87376",
+					"hash":	"u:01fa61fbd62f7b485192f0016ff3b70c57bac97fa9d0618c345932ab283fd67f",
 					"parents":	[],
 					"command":	"rune new text two",
 					"verb":	"rune",
@@ -191,7 +191,7 @@
 					"group":	null,
 					"seq":	1
 				}, {
-					"hash":	"u:c85e808c32c244aabfec93a278719e23f38e52d207a3a15446f74b9d095ef188",
+					"hash":	"u:9ef20e479649ef6bd89dc867c985bacefef20f29e28417fd37c6381c4ad32e31",
 					"parents":	[],
 					"command":	"rune new text one",
 					"verb":	"rune",
@@ -200,11 +200,11 @@
 					"group":	null,
 					"seq":	1
 				}],
-			"out":	"605de916 c85e808c"
+			"out":	"01fa61fb 9ef20e47"
 		}, {
 			"name":	"a delivery missing the middle — must DIFFER (incomplete)",
 			"in":	[{
-					"hash":	"u:1c883a439d5db6bd2212ab862636b5e01dffb900fcb8ca7ecc738aab002fa13d",
+					"hash":	"u:1c2ff5e2acc19b3053d7b54b418e81e7844a70f001d563e922b281681dcb44ef",
 					"parents":	[],
 					"command":	"rune new text shared",
 					"verb":	"rune",
@@ -213,8 +213,8 @@
 					"group":	null,
 					"seq":	1
 				}, {
-					"hash":	"u:ba15560af82f0ad80eeeb3bb709213ca16142bcfb1dcd5a355710e2c4815d6eb",
-					"parents":	["u:2e1a93018c8d585e1b84b0249092c98bf456ac644e0a98b3523ddc70819a4992", "u:87b0630a414c4c21bf78c682d795edc8b42e0a886b9f8e024d52bc3437406f1c"],
+					"hash":	"u:99ca33c49cd9b92ec0661416c8dfe8acfad7f76c2c1944a76517a62f4aa17017",
+					"parents":	["u:34ffea2ae79277aeff94eefc00bf6ed5445aba514b50b063fe061ac2c89d4a84", "u:9d2f6d76f3c51e071eb87125fa855ae0354232774a640e98b19638831054fa6b"],
 					"command":	"tag shared +both",
 					"verb":	"tag",
 					"who":	"ada",
@@ -222,8 +222,8 @@
 					"group":	null,
 					"seq":	3
 				}, {
-					"hash":	"u:49f9baf47697e94dd4862f63ddf2233f9adb6dd074093d704235310f8e5e1f27",
-					"parents":	["u:ba15560af82f0ad80eeeb3bb709213ca16142bcfb1dcd5a355710e2c4815d6eb"],
+					"hash":	"u:91e2145d0e846fb24347c5af3f3bfe1c4a91d89ae2473c50ff4b18aeb8cb769e",
+					"parents":	["u:99ca33c49cd9b92ec0661416c8dfe8acfad7f76c2c1944a76517a62f4aa17017"],
 					"command":	"rune new text after",
 					"verb":	"rune",
 					"who":	"ada",

@@ -202,9 +202,39 @@ A map with keys `from`, `to`, `relation`, `weight`, `directed`, defaults applied
 
 ### 4.4 Slice, and what is excluded
 
-The **versioned slice** of a Void Core state document is `mantles` and nothing
-else, encoded as a **set**. Mantle names MUST be unique; duplicates MUST be
-rejected.
+The **versioned slice** of a Void Core state document is a **map** with exactly
+two members:
+
+| member | encoding |
+|---|---|
+| `mantles` | a **set** of §4.2 mantles. Names MUST be unique; duplicates MUST be rejected |
+| `glyphs` | a **map** from glyph name to §4.5 declaration |
+
+An **absent** `glyphs` key and an **empty** one MUST encode identically — the same
+hydration rule §4.1 applies to a partial rune. A document written before the key
+existed and one that declares nothing are the same state, and an implementation
+that distinguished them would report a change where none happened.
+
+> **`glyphs` joined the slice at `CANON_VERSION` 3** (2026-09-03), when Void Core
+> 0.2.14 added `state.glyphs` — the declarations that say what a rune's content
+> means. The slice was `mantles` alone and was encoded as a bare set; it is now a
+> two-member map, so **every name moved**, including for documents that declare
+> nothing. That is what the version counter is for.
+>
+> The line this settles is not "is the key data?" — `domains` is data too. It is:
+>
+> | key describes | example | versioned |
+> |---|---|---|
+> | the world this machine sits in | `domains`, `config` | no |
+> | the thing the user made | `mantles`, `glyphs` | **yes** |
+>
+> A declaration is inert: Core stores `presentations` without reading it and
+> executes none of it, so the forcing argument against `domains` — that syncing
+> one runs device A's deploy command on device B — does not reach it. And
+> excluding it has a measured cost rather than a theoretical one: sync a mantle
+> without its declarations and the receiving peer holds the content in its
+> document and cannot reach it through the projection, with **no error anywhere**.
+> `mantles` and `glyphs` are a value and its type.
 
 > **Naming and storing are different jobs, and this section is about naming.**
 > The exclusions below say what may not contribute to a *version name*, because a
@@ -224,6 +254,7 @@ The following MUST NOT contribute to the digest:
 | `active` | a cursor |
 | `scripts` | host-local |
 | `_baseline` | dirty-tracking |
+| `glyphs[…].source` | see §4.5 — how *this peer* resolved a declaration |
 
 **Policy.** One flag, `include_view`, controls whether a rune's `placement` (Core's
 view slice) is encoded. Both settings are correct — for different questions —
@@ -232,6 +263,39 @@ so the policy string MUST appear in the §3 header:
 ```
 include_view=1   |   include_view=0
 ```
+
+### 4.5 Glyph declaration
+
+A **declaration** is the schema that says what a rune's content means
+(`VoidCore:SPEC.md §2`). Palabra does not interpret one: `kind`, `fields`,
+`presentations`, `kinds` and anything else an author writes are an application's
+vocabulary, and Core itself stores `presentations` without reading it. A
+declaration is therefore encoded as an ordinary §2.3 map of its members.
+
+**One key MUST be excluded: `source`.**
+
+Core stamps each descriptor `"source": "document"` or `"source": "host"` to record
+whether a declaration traveled with the data or was registered by the host at
+boot. That is an answer about **how this peer resolved the declaration**, not
+about what the type is — the same schema is `document` on the peer that received
+it and may be `host` on a peer whose application also registered it. Including it
+would make two peers holding one schema compute different names for it, which is
+the divergence §1 exists to prevent.
+
+It is the same judgment as `domains`: real state, peer-local resolution, not
+versioned content. The difference is that `source` sits *inside* a versioned key,
+so it is excluded here rather than by omitting the key.
+
+**An implementation MUST apply this exclusion in every place a declaration is
+compared, not only when computing a name.** The reference implementation briefly
+excluded `source` from the canonical form and not from the CRDT register that
+carries a declaration across a merge, so two peers differing only in `source`
+computed the same version name *and* reported a redeclaration conflict — the state
+said "identical" and the merge said "you disagree". Neither answer was wrong on
+its own, which is what made it worth stating normatively.
+
+A `glyphs` value that is not a map, and a declaration that is not an object, MUST
+be refused (§2 has no honest encoding for either).
 
 ---
 
@@ -292,7 +356,10 @@ a write retires what it observed and adds one value), and as a **keyed map**
                        "facets.<facet>": <Reg>, "content.<key>": <Reg>,
                        "placement": <Reg> },
           "tags":    <OrSet> } },
-      "edges":   <OrSet> } } }
+      "edges":   <OrSet> } },
+  "glyphs":  { "<glyph name>": {
+      "present": <OrSet>,
+      "fields":  { "descriptor": <Reg> } } } }
 ```
 
 - Runes MUST be keyed by **`spirit.id`**, which is immutable — so two peers renaming
@@ -302,6 +369,15 @@ a write retires what it observed and adds one value), and as a **keyed map**
 - **Each content key MUST be its own register.** Two peers editing different fields
   of one rune therefore do not conflict, which is most of what makes concurrent
   editing tolerable.
+- **A declaration MUST be ONE register holding the whole descriptor** — the opposite
+  granularity, and deliberately so. Splitting content per key means two peers
+  editing different fields of one rune do not conflict. Splitting a *schema* per
+  key would let a merge assemble peer A's `fields` with peer B's `kind` and hand
+  the result back as a type **neither peer declared**. A schema nobody wrote is
+  worse than a disagreement somebody has to answer, so concurrent redeclaration
+  surfaces as a conflict (§5.3) instead of being merged away.
+- The register's value MUST be the declaration **with `source` excluded**, per
+  §4.5 — the same rule that computes its name.
 
 ### 5.3 Merging and conflicts
 
@@ -325,6 +401,19 @@ value rather than an error. `sides` MUST be ordered canonically (by the encoded
 value bytes) so that two peers naming the same divergence produce the same object.
 No side is privileged; there is no "ours".
 
+**A conflict is located by exactly one of two addresses:**
+
+| where | locator | `field` |
+|---|---|---|
+| in a mantle | `mantle`, and `rune` for a rune-level register | e.g. `content.body`, `domain` |
+| in a declaration | `glyph` | `descriptor` |
+
+A declaration belongs to the document rather than to any mantle, so a glyph
+conflict MUST NOT be reported with an empty mantle name standing in for one — a
+renderer given `""` prints a blank where a name should be. Implementations MUST
+enumerate conflicts in a deterministic order so that two peers list them
+identically.
+
 ### 5.4 The round-trip law
 
 ```
@@ -334,6 +423,19 @@ flatten(enrich(x)) == x
 for any state `x` that contains no conflicts, compared through §4's canonical form.
 This is the law `VoidCore:scry/roundtrip.py` holds a Lens to, for the same reason: a
 mapping written separately for each direction drifts into silent data loss.
+
+**"Compared through §4's canonical form" is load-bearing, and an implementation
+MUST NOT present this law without it.** §4 names the *versioned slice*, so what
+round-trips is `mantles` and `glyphs`. `flatten` returns the slice, not the
+document: `config`, `domains`, `bindings` and `active` are not in it and never
+were. A caller who writes the result back as their whole state document loses
+every one of them.
+
+The correct use is to **splice**: take the slice out of the flattened result and
+put it into the document you already have, which keeps this device's peer-local
+resolution its own. Void Core 0.2.14 §2(c) makes the same point from the other
+side — *"if you RECONSTRUCT the state document rather than round-tripping it, you
+will drop `glyphs`"* — and the document will grow keys again.
 
 ### 5.5 Growth
 
@@ -454,14 +556,22 @@ An implementation **MUST** refuse a journal entry that is missing `command`,
 three named values. It MUST NOT default a missing field. `who` is nullable and
 MUST be present as an explicit null when there is no actor.
 
-**Known residue.** Core's `undo` slice is `mantles` **plus** `active`, and §4.4
-versions `mantles` alone. A journal entry cannot distinguish them, so a
-cursor-only command (`use x`) becomes an utterance whose replay leaves the
-versioned slice unchanged. This is a redundant utterance, never a missing one, and
-the choice follows §1.2: recording something that turns out to be meaningless
-costs a false conflict, and dropping something that turns out to be real is a
-silent wrong answer. A future Core `slice` value distinguishing the two would
-remove it.
+**Known residue.** Core's `undo` slice is `mantles` + `active` + `glyphs`, and
+§4.4 versions `mantles` + `glyphs`. The overlap grew on 2026-09-03 and the residue
+did not: `active` is still the one member of the undo slice that is not versioned
+content, and a journal entry cannot distinguish it, so a cursor-only command
+(`use x`) becomes an utterance whose replay leaves the versioned slice unchanged.
+
+This is a redundant utterance, never a missing one, and the choice follows §1.2:
+recording something that turns out to be meaningless costs a false conflict, and
+dropping something that turns out to be real is a silent wrong answer. A future
+Core `slice` value distinguishing `mantles` from `active` would remove it.
+
+`glyph declare` needs no special handling and gets none. Core journals it `pure:
+true`, `slice: "undo"`, so it arrives as an ordinary entry and becomes an ordinary
+utterance — and because §4.4 now versions what it changed, replaying that utterance
+moves the version name, which is what makes it a real entry rather than a
+redundant one.
 
 ### 8.2 The utterance
 
@@ -550,7 +660,7 @@ the graph.
 
 ## 9. Conformance
 
-`conformance/` holds **148 language-neutral vectors** covering every section above,
+`conformance/` holds **188 language-neutral vectors** covering every section above,
 in the shape `VoidCore:conformance/reduce/` proved. An implementation is conforming
 iff it reproduces every `out` exactly.
 

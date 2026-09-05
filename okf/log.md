@@ -1,5 +1,121 @@
 # Bundle Update Log
 
+## 2026-09-03 — the versioned slice grew a key, and CANON_VERSION went to 3
+
+Message received: `MESSAGE_FOR_VOIDPALABRA_voidcore-0.2.14-a-new-top-level-key-2026-09-03.md`.
+Core added `state.glyphs` — glyph *declarations*, the schemas that say what a
+rune's content means — and asked the one question they could not answer for us:
+does it join the sync slice? It does.
+
+* **The decision, and why it was not close.** Palabra's rule for the slice has
+  never been *"is this key data?"* — `domains` is data. It is whether a key
+  describes **the world this machine sits in** or **the thing the user made**.
+  Core's own sentence is the sharpest statement of it we have:
+
+  > A domain is *how this machine reaches the world*. A glyph declaration is *what
+  > the runes you are already syncing mean*.
+
+  The forcing argument that keeps `domains` out — a domain carries real
+  `build`/`deploy` commands, so syncing one **executes** device A's command on
+  device B — does not reach a declaration, which executes nothing.
+
+* **And the cost of leaving it out was measured rather than argued.** Void
+  Hormiga's merge splices only `mantles` out of `flatten` and keeps the rest of
+  its local document, which is exactly right and is why nothing there broke. It is
+  also why the declarations never travel: peer B declares a type, creates runes of
+  it, syncs, and peer A receives content it holds in its document and cannot reach
+  through the projection — **with no error anywhere**. Not a degraded sync; one
+  that looks like it worked. `mantles` and `glyphs` are a value and its type.
+
+* **`CANON_VERSION` 2 → 3, and every name moved.** The slice used to encode as a
+  bare set of mantles; it is now a two-member map, so documents that declare
+  nothing get new names too. That was a choice: the bytes could have been left
+  alone by encoding `glyphs` only when present, and that was rejected because it
+  would make **absent and empty two different states forever** to avoid one bump
+  once. Absent and empty are now asserted equal, by the same hydration rule §4.1
+  already applies to a partial rune.
+
+* **One key inside the new key is excluded: `source`.** Core stamps each descriptor
+  `"document"` or `"host"` to record how **this peer** resolved it. That is
+  peer-local in precisely the way `domains` is — the same schema is `document` on
+  the peer that received it and may be `host` on a peer that also registered it —
+  so hashing it would make two peers holding one schema disagree about its name.
+  It is the `domains` judgment applied one level down, inside a key that is
+  otherwise versioned.
+
+* **A bug we wrote and caught in the same hour, worth keeping because of its
+  shape.** The first version excluded `source` from the canonical form and **not**
+  from the CRDT register that carries a declaration across a merge. So two peers
+  differing only in `source` computed the **same version name** *and* reported a
+  **redeclaration conflict**: the state said "identical", the merge said "you
+  disagree", and both were this library speaking.
+
+  Neither answer was wrong on its own, which is what made it dangerous — there was
+  no failing assertion anywhere, only two correct components disagreeing about what
+  a declaration *is*. The fix is that they are now literally one function
+  (`enc::canon_glyph_descriptor`), shared across the canonical and CRDT layers, and
+  the rule is normative in [SPEC.md](../SPEC.md) §4.5. Pinned by
+  `the_name_and_the_merge_agree_about_what_a_declaration_is`, which asserts the two
+  answers are *equal to each other* rather than asserting either one.
+
+* **A declaration is ONE register, not one per key — the opposite of `content`.**
+  A rune's content is split per key so two peers editing different fields do not
+  collide. Splitting a **schema** that way would let a merge assemble peer A's
+  `fields` with peer B's `kind` and hand the result back as a type neither peer
+  declared. A schema nobody wrote is worse than a disagreement somebody has to
+  answer, so concurrent redeclaration surfaces through `conflicts()` — which is
+  what Core asked for, and for the same reason.
+
+  A conflict therefore has **two possible addresses** now: `mantle`/`rune` for a
+  disagreement inside a mantle, `glyph` for a redeclaration. The mantle key is
+  *absent* rather than empty on a glyph conflict — `""` standing in for "not in a
+  mantle" is how a renderer prints a blank where a name should be.
+
+* **Core's §2(c) check, answered in both directions.** They warned that a host
+  which *reconstructs* the state document will silently drop the new key. The
+  archive was already safe — it stores every top-level key since the 2026-08-21
+  data-loss fix, and `glyphs` rides along without being named. `flatten` is the
+  other direction and was **already documented misleadingly**: the header called
+  `flatten(enrich(x)) == x` a "round-trip law" without saying that §4's canonical
+  form — what the comparison runs through — is defined over the *slice*. `flatten`
+  returns the slice, not the document, and a caller who writes it back whole loses
+  `config`, `domains`, `bindings` and `active`. Now stated at the call site, in
+  SPEC §5.4, and asserted by `flatten_returns_the_slice_and_only_the_slice`.
+
+* **The generator moved into the tree.** `conformance/cases/14-linear-extension.json`
+  holds utterances that name each other by hash, so it can be regenerated by
+  neither hand nor `--regen` (which only rewrites `out`; the hashes are in `in`).
+  It was produced by a throwaway program that then had to be written twice.
+  `tools/gen_linear_vectors.cpp` is now a real target — `EXCLUDE_FROM_ALL` and no
+  ctest entry, because it **writes** a contract rather than checking one, and a
+  regenerator that runs during an ordinary build is how a suite quietly starts
+  agreeing with whatever the implementation does today.
+
+* **And one defect found on the way past.** `Conflict::hash()` built its own domain
+  header — `"voidpalabra/conflict"` plus a NUL — instead of going through SPEC §3's,
+  so it was the **only digest in the library with no `CANON_VERSION` in it**. An old
+  and a new implementation could therefore compute the same name for a conflict over
+  encodings that had moved underneath them, which is the single thing the counter
+  exists to prevent.
+
+  Pre-existing rather than new, and fixed here because the cheapest moment to move a
+  hash is a release where hashes are already moving. The conflict vectors regenerated
+  and their `must equal` / `must DIFFER` relations still hold, which is what
+  distinguishes a legitimate regeneration from papering over a break.
+
+* **Where the tree stands:** 10 suites, no leaks, **188 conformance vectors**
+  (from 148 — two new files, one new case in §4.4's, and every expectation
+  regenerated for CANON_VERSION 3), clean under `-Wall -Wextra`, zero dependencies.
+
+* **Not adopted, and deliberately.** Core's `values`/`measure` verbs, the three
+  rune kinds and attribute-assertions-on-edges are all *inside* a mantle, so they
+  reach Palabra as ordinary rune and edge content that the canonical form already
+  carries byte-for-byte. Nothing here interprets a `kind` or a unit, and nothing
+  should: §7 of their message warns that a graph holding both "supports, 0.8" and
+  "speed, 900" has no meaningful weighted degree, and Palabra computes no weighted
+  anything. The one place it could have leaked in is `layout.edges`, which is
+  encoded as an opaque set and stays that way.
+
 ## 2026-08-27 — Core cleared the blocker; Phase 3's first rung is built
 
 Message received: `MESSAGE_FOR_VOIDPALABRA_reified-commands-and-purity-2026-08-27.md`.

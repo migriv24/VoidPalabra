@@ -99,6 +99,14 @@ if(NOT MSVC)
 endif()
 add_test(NAME archive COMMAND voidpalabra_archive_test)
 
+add_executable(voidpalabra_glyphs_test tests/glyphs_test.cpp)
+target_include_directories(voidpalabra_glyphs_test PRIVATE vendor)
+target_link_libraries(voidpalabra_glyphs_test PRIVATE voidpalabra)
+if(NOT MSVC)
+  target_compile_options(voidpalabra_glyphs_test PRIVATE -Wall -Wextra)
+endif()
+add_test(NAME glyphs COMMAND voidpalabra_glyphs_test)
+
 add_executable(voidpalabra_utterance_test tests/utterance_test.cpp)
 target_include_directories(voidpalabra_utterance_test PRIVATE vendor)
 target_link_libraries(voidpalabra_utterance_test PRIVATE voidpalabra)
@@ -128,6 +136,18 @@ if(NOT MSVC)
 endif()
 add_test(NAME conformance COMMAND voidpalabra_conformance
          WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+
+# The regenerator for conformance/cases/14-linear-extension.json, whose utterances
+# name each other by hash and therefore cannot be hand-written or `--regen`ed.
+#
+# EXCLUDE_FROM_ALL and no add_test, deliberately: it WRITES a contract rather than
+# checking one. A regenerator that runs as part of the ordinary build is how a
+# conformance suite quietly starts agreeing with whatever the implementation
+# happens to do today. Build it on purpose when CANON_VERSION moves:
+#   cmake --build build --target gen_linear_vectors
+add_executable(gen_linear_vectors EXCLUDE_FROM_ALL tools/gen_linear_vectors.cpp)
+target_include_directories(gen_linear_vectors PRIVATE vendor)
+target_link_libraries(gen_linear_vectors PRIVATE voidpalabra)
 
 # The OKF honesty convention, made enforceable. A 2026-08-21 refactor moved every
 # source file and left all four `resource:` links dangling while the bundle still

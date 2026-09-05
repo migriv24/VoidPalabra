@@ -1,0 +1,233 @@
+{
+	"kind":	"slice",
+	"about":	"§4.4 — `glyphs` joined the versioned slice at CANON_VERSION 3 (VoidCore 0.2.14). What a declaration contributes to a name, and what is excluded from it",
+	"cases":	[{
+			"name":	"a document that declares nothing",
+			"in":	{
+				"mantles":	[{
+						"name":	"m",
+						"runes":	[]
+					}]
+			},
+			"out":	"v:6976aa7acdf5d311712317864d1d9f556f76f3dfe8912d79911e50482d8f3f09"
+		}, {
+			"name":	"an empty glyphs map — must equal (absent and empty are one state)",
+			"in":	{
+				"mantles":	[{
+						"name":	"m",
+						"runes":	[]
+					}],
+				"glyphs":	{
+				}
+			},
+			"out":	"v:6976aa7acdf5d311712317864d1d9f556f76f3dfe8912d79911e50482d8f3f09"
+		}, {
+			"name":	"one declaration — must DIFFER",
+			"in":	{
+				"mantles":	[{
+						"name":	"m",
+						"runes":	[]
+					}],
+				"glyphs":	{
+					"stat":	{
+						"glyph":	"stat",
+						"label":	"Stat",
+						"kind":	"measure",
+						"fields":	["note"]
+					}
+				}
+			},
+			"out":	"v:a3ee055dff31b99e98ae0fe1a17cbfaca3ad451a6bd404a68cf95d081672600f"
+		}, {
+			"name":	"the same, stamped source=document — must equal (peer-local resolution)",
+			"in":	{
+				"mantles":	[{
+						"name":	"m",
+						"runes":	[]
+					}],
+				"glyphs":	{
+					"stat":	{
+						"glyph":	"stat",
+						"label":	"Stat",
+						"kind":	"measure",
+						"fields":	["note"],
+						"source":	"document"
+					}
+				}
+			},
+			"out":	"v:a3ee055dff31b99e98ae0fe1a17cbfaca3ad451a6bd404a68cf95d081672600f"
+		}, {
+			"name":	"the same, stamped source=host — must equal (how a peer resolved it is not the type)",
+			"in":	{
+				"mantles":	[{
+						"name":	"m",
+						"runes":	[]
+					}],
+				"glyphs":	{
+					"stat":	{
+						"glyph":	"stat",
+						"label":	"Stat",
+						"kind":	"measure",
+						"fields":	["note"],
+						"source":	"host"
+					}
+				}
+			},
+			"out":	"v:a3ee055dff31b99e98ae0fe1a17cbfaca3ad451a6bd404a68cf95d081672600f"
+		}, {
+			"name":	"a different kind — must DIFFER",
+			"in":	{
+				"mantles":	[{
+						"name":	"m",
+						"runes":	[]
+					}],
+				"glyphs":	{
+					"stat":	{
+						"glyph":	"stat",
+						"label":	"Stat",
+						"kind":	"entity",
+						"fields":	["note"]
+					}
+				}
+			},
+			"out":	"v:9bd60bc95b365e03b1416ad32f3a0cc5621863023c916b0b1039936bdd8b3bdb"
+		}, {
+			"name":	"a declaration with no kind — must DIFFER (Core defaults it; Palabra does not invent it)",
+			"in":	{
+				"mantles":	[{
+						"name":	"m",
+						"runes":	[]
+					}],
+				"glyphs":	{
+					"stat":	{
+						"glyph":	"stat",
+						"label":	"Stat",
+						"fields":	["note"]
+					}
+				}
+			},
+			"out":	"v:93f755568b5a40f56e76cf9755e7df8fa1feaf3aea1216deacc44f21cf7fd504"
+		}, {
+			"name":	"two declarations, listed one way",
+			"in":	{
+				"mantles":	[],
+				"glyphs":	{
+					"a":	{
+						"glyph":	"a",
+						"kind":	"act"
+					},
+					"b":	{
+						"glyph":	"b",
+						"kind":	"measure"
+					}
+				}
+			},
+			"out":	"v:7f530d3362798cb94c4f7080496a2c4404d29209870102813100dde21ef18e31"
+		}, {
+			"name":	"the same two, listed the other way — must equal (a map is not an order)",
+			"in":	{
+				"mantles":	[],
+				"glyphs":	{
+					"b":	{
+						"glyph":	"b",
+						"kind":	"measure"
+					},
+					"a":	{
+						"glyph":	"a",
+						"kind":	"act"
+					}
+				}
+			},
+			"out":	"v:7f530d3362798cb94c4f7080496a2c4404d29209870102813100dde21ef18e31"
+		}, {
+			"name":	"presentations ride along, stored and never interpreted",
+			"in":	{
+				"mantles":	[],
+				"glyphs":	{
+					"a":	{
+						"glyph":	"a",
+						"kind":	"act",
+						"presentations":	{
+							"canvas":	{
+								"sprite":	"a.png"
+							}
+						}
+					}
+				}
+			},
+			"out":	"v:860a6b8f35477f59cda703272b85acde09f164e0d69248ab6a33e81b98da380d"
+		}, {
+			"name":	"a different presentation — must DIFFER (opaque, but not ignored)",
+			"in":	{
+				"mantles":	[],
+				"glyphs":	{
+					"a":	{
+						"glyph":	"a",
+						"kind":	"act",
+						"presentations":	{
+							"canvas":	{
+								"sprite":	"b.png"
+							}
+						}
+					}
+				}
+			},
+			"out":	"v:26b58b9baa7e5593eb67a9868258dc471f6c6c9b1a5f78901d2226ddda9b4db5"
+		}, {
+			"name":	"a quantity annotation on a field",
+			"in":	{
+				"mantles":	[],
+				"glyphs":	{
+					"stat":	{
+						"glyph":	"stat",
+						"kind":	"measure",
+						"fields":	["v"],
+						"kinds":	{
+							"v":	{
+								"level":	"ratio",
+								"unit":	"m/s",
+								"min":	0
+							}
+						}
+					}
+				}
+			},
+			"out":	"v:374030dce8e37221aadab19b06bc69bd105398325f07b17651916d345d0db36c"
+		}, {
+			"name":	"a different unit — must DIFFER (a dimension is part of the type)",
+			"in":	{
+				"mantles":	[],
+				"glyphs":	{
+					"stat":	{
+						"glyph":	"stat",
+						"kind":	"measure",
+						"fields":	["v"],
+						"kinds":	{
+							"v":	{
+								"level":	"ratio",
+								"unit":	"km/h",
+								"min":	0
+							}
+						}
+					}
+				}
+			},
+			"out":	"v:671e1c021c4848709f8865775cd54690fe524ba65fd96d211cfc584fff25e930"
+		}, {
+			"name":	"glyphs is an array, not a map — refused",
+			"in":	{
+				"mantles":	[],
+				"glyphs":	["stat"]
+			},
+			"out":	"refused"
+		}, {
+			"name":	"a declaration is a string, not an object — refused",
+			"in":	{
+				"mantles":	[],
+				"glyphs":	{
+					"stat":	"measure"
+				}
+			},
+			"out":	"refused"
+		}]
+}

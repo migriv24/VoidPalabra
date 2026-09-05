@@ -153,9 +153,9 @@ from an incomplete one.
 
 # What an utterance may target
 
-**Ruled 2026-07-27.** An utterance targets **`mantles`, and nothing else**.
-`domains`, `bindings` and `config` are **peer-local resolution** — real state, but
-not versioned content, and never synced.
+**Ruled 2026-07-27, widened 2026-09-03.** An utterance targets **`mantles` and
+`glyphs`**. `domains`, `bindings` and `config` are **peer-local resolution** — real
+state, but not versioned content, and never synced.
 
 The forcing case is `domain`. A Void Core domain is *the real hosting target*: a
 repo path, build and deploy commands, a port. Syncing one as content means **device
@@ -169,10 +169,31 @@ The right analogy is that a git remote's filesystem path is not cloned. So:
 | slice | versioned? | why |
 |---|---|---|
 | `mantles` | **yes** | the content; what the user actually made |
+| `glyphs` | **yes** | the schemas that say what the content means — added 2026-09-03 |
 | `active` | no | a cursor — view state, like `placement` |
 | `domains` | **no** | executable configuration; peer-local by name |
 | `bindings` | **no** | a mantle↔domain wiring, resolved locally |
 | `config` | **no** | setup, not content |
+
+**Why `glyphs` is on the yes side when `domains` is not**, since both are "config"
+in loose speech and the distinction decides the whole table. Void Core put it best
+in the message that proposed it:
+
+> A domain is *how this machine reaches the world*. A glyph declaration is *what
+> the runes you are already syncing mean*.
+
+The forcing argument against `domains` is that a domain carries real `build` and
+`deploy` commands, so syncing one **executes** device A's command on device B. A
+declaration executes nothing — Core stores `presentations` without reading it. And
+the cost of leaving it out is not hypothetical: a peer receiving a mantle without
+its declarations holds the content in its document and cannot reach it through the
+projection, **with no error anywhere**. That is not a degraded sync, it is a sync
+that looks like it worked. `mantles` and `glyphs` are a value and its type.
+
+One key *inside* `glyphs` stays out: Core stamps each descriptor `source:
+"document" | "host"` to say how **this peer** resolved it, and that is peer-local
+in exactly the way `domains` is. It is excluded from the canonical form and from
+the CRDT register alike — see [canonical form](/concepts/canonical-form.md).
 
 A mantle therefore references a domain **by name**, and **each peer resolves that
 name against its own domain table**. Two peers can hold the same mantle and deploy

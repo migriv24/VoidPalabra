@@ -64,7 +64,7 @@ bundle with a `resource:` link to the code that backs it:
 
 | layer | what it gives you |
 |---|---|
-| [canonical form](okf/concepts/canonical-form.md) | deterministic bytes and a name for any Void Core slice — every other name rests on it |
+| [canonical form](okf/concepts/canonical-form.md) | deterministic bytes and a name for any Void Core slice — `mantles` + `glyphs`, and every other name rests on it |
 | [join](okf/concepts/join.md) | the merge law: commutative, associative, idempotent, conflicts as values |
 | [persistence](okf/concepts/persistence.md) ◑ | content-addressed storage — a 400 KB asset with a 4-byte edit costs **9 KB**, not 400 KB |
 | [archive](okf/concepts/archive.md) | save / load / every past version, with atomic file writes — 100 saves + a 400 KB asset: **560 KB**, where `.miga` would take ~54 MB |
@@ -86,7 +86,7 @@ git clone https://github.com/migriv24/VoidPalabra
 cd VoidPalabra
 cmake -S . -B build -G Ninja
 cmake --build build
-ctest --test-dir build      # 9 suites: property tests, leaks, 148 conformance vectors
+ctest --test-dir build      # 10 suites: property tests, leaks, 188 conformance vectors
 ```
 
 `tools/check_okf.py` runs as the ninth suite when a `python` is on PATH and is
@@ -97,6 +97,8 @@ not the library, which stays dependency-free.
 #include "voidpalabra/canonical.hpp"
 
 cJSON* state = /* a Void Core state document */;
+// names the VERSIONED SLICE: `mantles` and `glyphs` (the schemas that say what
+// the content means). `domains`, `config` and `active` are peer-local and excluded.
 std::string v = voidpalabra::version_name(state);
 // a real one, from conformance/cases/06-slice-and-exclusions.json:
 //   v:ad239d983af0bad5a97850aa0b6be3e586ecccb92a284648a24ba345c4bf52f3
@@ -140,7 +142,7 @@ travel, blame and selective sync — **not** convergence, which is the join's, a
 and works on a peer that stores no history at all.
 
 **Layout.** `include/voidpalabra/` public headers · `src/` implementation ·
-`tests/` property suites + an allocation-balance check · `conformance/` 148
+`tests/` property suites + an allocation-balance check · `conformance/` 188
 language-neutral vectors any implementation can be checked against
 ([SPEC.md](SPEC.md)) · `vendor/` cJSON, vendored whole as Void Maiz and Void Core do. A consumer that already vendors cJSON should link its own copy; the
 public header only forward-declares it, so the two never conflict.
