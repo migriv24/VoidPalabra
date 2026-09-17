@@ -20,6 +20,7 @@
 #include "voidpalabra/join.hpp"
 #include "voidpalabra/store.hpp"
 #include "voidpalabra/utterance.hpp"
+#include "voidpalabra/replica.hpp"
 #include "voidpalabra/crdt/conflict.hpp"
 
 #include "cJSON.h"
@@ -311,6 +312,73 @@ void body_glyphs() {
     cJSON_Delete(pb);
 }
 
+/* The replica allocates on every path that matters to a long-running sync loop:
+ * observe (a working copy and a delta, discarded on failure), merge (validation,
+ * two tag scans, the join), resolve, and persistence. A leak here is per tick. */
+void body_replica() {
+    const char* s1 =
+        "{\"mantles\":[{\"id\":\"m1\",\"name\":\"n\",\"tags\":{\"t\":{\"near\":{}}},\"rules\":[\"r\"],"
+        "\"runes\":[{\"spirit\":{\"id\":\"rune_1\",\"name\":\"a\"},\"glyph\":\"text\","
+        "\"content\":{\"body\":\"one\"},\"tags\":[\"x\"],\"relations\":[1]}]}],"
+        "\"glyphs\":{\"g\":{\"glyph\":\"g\",\"source\":\"host\"}}}";
+    const char* s2 =
+        "{\"mantles\":[{\"id\":\"m1\",\"name\":\"n\",\"runes\":[{\"spirit\":{\"id\":\"rune_1\","
+        "\"name\":\"a\"},\"glyph\":\"text\",\"content\":{\"body\":\"two\"}}]}]}";
+    const char* s3 = "{\"mantles\":[{\"id\":\"m1\",\"name\":\"n\",\"runes\":[]}]}";
+
+    Replica a, b;
+    Replica::create("leak-replica-A-000", a, nullptr);
+    Replica::create("leak-replica-B-000", b, nullptr);
+    cJSON* j1 = cJSON_Parse(s1);
+    cJSON* j2 = cJSON_Parse(s2);
+    cJSON* j3 = cJSON_Parse(s3);
+    {
+        Replica::Observed o1 = a.observe(j1);
+        b.merge(o1.delta, nullptr);
+        Replica::Observed o2 = a.observe(j2);
+        Replica::Observed o3 = b.observe(j3);
+        a.merge(b.doc(), nullptr);
+        b.merge(a.doc(), nullptr);
+        for (const Conflict& c : a.conflicts()) {
+            Doc delta;
+            a.resolve(c, 0, &delta);
+            break;
+        }
+        Doc f = a.flatten();
+        Replica::Observed idle = a.observe(f.root);
+
+        Replica back;
+        Replica::from_bytes(a.to_bytes(), back, nullptr);
+        Replica forked;
+        back.fork("leak-replica-C-000", forked, nullptr);
+        /* The refusal paths: a copy that collides, a document that fails the door,
+         * a state that cannot be encoded, bytes that are not a replica. */
+        Replica clone;
+        Replica::from_bytes(a.to_bytes(), clone, nullptr);
+        clone.observe(j1);
+        a.observe(j3);
+        a.merge(clone.doc(), nullptr);
+        cJSON* bad = cJSON_Parse("{\"palabra\":1,\"mantles\":{\"n\":{\"present\":7}}}");
+        a.merge(bad, nullptr);
+        cJSON_Delete(bad);
+        cJSON* dup = cJSON_Parse("{\"mantles\":[{\"name\":\"x\"},{\"name\":\"x\"}]}");
+        a.observe(dup);
+        cJSON_Delete(dup);
+        Replica junk;
+        Replica::from_bytes("{\"palabra_replica\":1,\"id\":\"x\"}", junk, nullptr);
+    }
+    cJSON_Delete(j1);
+    cJSON_Delete(j2);
+    cJSON_Delete(j3);
+
+    /* The decoder's refusals, which used to be where an early return forgot a tree. */
+    cJSON* v = decode(std::string("\x07\x03\x07\x01\x02", 5));
+    if (v) cJSON_Delete(v);
+    v = decode(std::string("\x08\x01\x05\x01k\x06", 6));
+    if (v) cJSON_Delete(v);
+    (void)is_canonical(std::string("\x08\x01\x05\x01k\x02", 6));
+}
+
 struct Case { const char* name; void (*fn)(); };
 
 const Case kCases[] = {
@@ -327,6 +395,7 @@ const Case kCases[] = {
     {"sequence", body_sequence},
     {"utterance/history", body_utterance},
     {"glyph declarations", body_glyphs},
+    {"replica + validation", body_replica},
 };
 
 }  // namespace

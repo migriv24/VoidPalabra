@@ -84,8 +84,40 @@ Doc enrich(const cJSON* state, Mint& mint);
  * 0.2.14 §2(c)'s warning. The document will grow keys again. */
 Doc flatten(const Doc& doc, const JoinPolicy& policy = {});
 
-/* The merge. Commutative, associative, idempotent — property-tested. */
+/* The merge. Commutative, associative, idempotent — property-tested.
+ *
+ * The laws hold for ANY input, including a malformed document: where two peers
+ * disagree about what kind of node sits at a path, the choice is a function of the
+ * nodes rather than of argument order, so the mesh still converges. That is a
+ * guarantee about convergence, not about correctness — a malformed node can still
+ * win. Anything that arrived from another peer goes through `validate` first. */
 Doc join(const Doc& a, const Doc& b);
+
+/* Is this enriched document — or a delta, which has the same shape with parts
+ * missing — safe to merge? SPEC.md §5.6.
+ *
+ * Everything a peer sends is checked before it touches local state, and the answer
+ * is all-or-nothing: a document with one bad register is refused whole, because
+ * merging "the good parts" would make what a peer holds depend on which parts this
+ * implementation happened to like.
+ *
+ * What it checks:
+ *   - the root is `{"palabra": 1, "mantles"?: {...}, "glyphs"?: {...}}` and nothing
+ *     else. A newer document shape bumps `palabra`; an older peer refusing it stops
+ *     sync VISIBLY, which is better than merging structure it cannot check.
+ *   - every node is where the shape (§5.2) says it can be, and is the kind of node
+ *     that position holds. A kind mismatch is what used to split a mesh for good.
+ *   - every OrSet is exactly `{"a": {tag: lowercase-hex}, "r": [tag]}`.
+ *   - every register, tag-set and edge value is CANONICAL (`is_canonical`), so two
+ *     spellings of one value cannot be read as a conflict.
+ *   - names and tags are non-empty.
+ *
+ * What it does not check: who is allowed to have sent this. That is trust, and it
+ * is not in this library yet (okf/design/open-questions.md §6).
+ *
+ * `why`, when given, receives a path and a reason for the first failure. */
+bool validate(const cJSON* root, std::string* why = nullptr);
+bool validate(const Doc& doc, std::string* why = nullptr);
 
 /* Canonical bytes of an enriched document — including its metadata, so two peers
  * agree on the merged state AND on how they got there.

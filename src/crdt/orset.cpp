@@ -49,26 +49,73 @@ cJSON* orset_to_json(const OrSet& s) {
     return o;
 }
 
+namespace {
+
+/* Lowercase hex only, even length — the only spelling `orset_to_json` writes. Any
+ * other spelling is either damage or an attempt to make two peers read one value
+ * differently ("AB" and "ab" used to decode to different bytes), so it is refused
+ * rather than interpreted. */
+bool unhex_strict(const char* hex, std::string& out) {
+    if (!hex) return false;
+    std::size_t n = std::strlen(hex);
+    if (n % 2) return false;
+    out.clear();
+    out.reserve(n / 2);
+    auto nib = [](char c) -> int {
+        if (c >= '0' && c <= '9') return c - '0';
+        if (c >= 'a' && c <= 'f') return c - 'a' + 10;
+        return -1;
+    };
+    for (std::size_t i = 0; i < n; i += 2) {
+        int hi = nib(hex[i]), lo = nib(hex[i + 1]);
+        if (hi < 0 || lo < 0) return false;
+        out.push_back(static_cast<char>(hi * 16 + lo));
+    }
+    return true;
+}
+
+}  // namespace
+
+bool orset_json_well_formed(const cJSON* o) {
+    if (!o || !cJSON_IsObject(o)) return false;
+    const cJSON* a = get(o, "a");
+    const cJSON* r = get(o, "r");
+    if (!a || !cJSON_IsObject(a) || !r || !cJSON_IsArray(r)) return false;
+    int members = 0;
+    for (const cJSON* it = o->child; it; it = it->next) ++members;
+    if (members != 2) return false;
+    std::string scratch;
+    for (const cJSON* it = a->child; it; it = it->next) {
+        if (!it->string || !it->string[0]) return false;
+        if (!cJSON_IsString(it) || !unhex_strict(it->valuestring, scratch)) return false;
+    }
+    for (const cJSON* it = r->child; it; it = it->next)
+        if (!cJSON_IsString(it) || !it->valuestring || !it->valuestring[0]) return false;
+    return true;
+}
+
 OrSet orset_from_json(const cJSON* o) {
+    /* Never undefined behaviour, whatever arrives. An `a` that is an array used to
+     * construct a std::string from a null key and crash the reader; a malformed
+     * entry is now skipped. Skipping is safe for convergence because every peer
+     * that reads the node skips the same entries — but it is still silent, which
+     * is why a document from a peer goes through `validate` first and is refused
+     * whole rather than read in part. */
     OrSet s;
     const cJSON* a = get(o, "a");
-    if (a) {
+    if (a && cJSON_IsObject(a)) {
+        std::string raw;
         for (const cJSON* it = a->child; it; it = it->next) {
-            std::string hex = it->valuestring ? it->valuestring : "";
-            std::string raw;
-            for (std::size_t i = 0; i + 1 < hex.size(); i += 2) {
-                auto nib = [](char c) -> int {
-                    return c >= 'a' ? c - 'a' + 10 : c - '0';
-                };
-                raw.push_back(static_cast<char>(nib(hex[i]) * 16 + nib(hex[i + 1])));
-            }
+            if (!it->string || !it->string[0] || !cJSON_IsString(it)) continue;
+            if (!unhex_strict(it->valuestring, raw)) continue;
             s.adds[it->string] = raw;
         }
     }
     const cJSON* r = get(o, "r");
-    if (r)
+    if (r && cJSON_IsArray(r))
         for (const cJSON* it = r->child; it; it = it->next)
-            if (it->valuestring) s.removes.insert(it->valuestring);
+            if (cJSON_IsString(it) && it->valuestring && it->valuestring[0])
+                s.removes.insert(it->valuestring);
     return s;
 }
 
@@ -81,11 +128,8 @@ std::string hexify(const std::string& raw) {
 }
 
 std::string unhexify(const std::string& hex) {
-    auto nib = [](char c) -> int { return c >= 'a' ? c - 'a' + 10 : c - '0'; };
     std::string raw;
-    for (std::size_t i = 0; i + 1 < hex.size(); i += 2)
-        raw.push_back(static_cast<char>(nib(hex[i]) * 16 + nib(hex[i + 1])));
-    return raw;
+    return unhex_strict(hex.c_str(), raw) ? raw : std::string();
 }
 
 const char* const kFacets[6] = {"who", "what", "when", "where", "why", "how"};

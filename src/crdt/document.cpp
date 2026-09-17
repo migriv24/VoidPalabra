@@ -12,6 +12,7 @@
 
 #include <algorithm>
 #include <array>
+#include <map>
 #include <cstdio>
 #include <cstring>
 #include <set>
@@ -25,30 +26,88 @@ namespace crdt {
  * and the three laws are inherited from the leaves at every level. */
 cJSON* join_node(const cJSON* a, const cJSON* b);
 
-bool is_orset(const cJSON* n) { return get(n, "a") != nullptr && get(n, "r") != nullptr; }
+/* An OrSet is an object whose `r` is an ARRAY. That is the whole test, and the
+ * previous one — "has children named `a` and `r`" — was a real defect rather than
+ * a theoretical one.
+ *
+ * Mantles are keyed by name and glyph declarations by glyph name, and both names
+ * are the user's. A user with two mantles called `a` and `r` made the `mantles`
+ * map look like an OrSet, so `join` read it as one and the merge produced ZERO
+ * mantles — every mantle erased by an ordinary sync, with no attacker involved
+ * (demonstrated 2026-09-16). A map node's children are always objects and an
+ * OrSet's `r` is always an array, so the array is what tells them apart. */
+bool is_orset(const cJSON* n) {
+    const cJSON* a = get(n, "a");
+    const cJSON* r = get(n, "r");
+    return cJSON_IsObject(n) && a && cJSON_IsObject(a) && r && cJSON_IsArray(r);
+}
+
+namespace {
+
+/* Where two peers disagree about what KIND of node sits at a path. */
+int node_rank(const cJSON* n) {
+    if (is_orset(n)) return 2;
+    if (cJSON_IsObject(n)) return 3;
+    return 1;
+}
+
+std::string printed(const cJSON* n) {
+    char* s = cJSON_PrintUnformatted(const_cast<cJSON*>(n));
+    std::string out = s ? s : "";
+    if (s) cJSON_free(s);
+    return out;
+}
+
+}  // namespace
 
 cJSON* join_map(const cJSON* a, const cJSON* b) {
-    cJSON* out = cJSON_CreateObject();
-    for (const cJSON* it = a ? a->child : nullptr; it; it = it->next) {
-        const cJSON* other = get(b, it->string);
-        cJSON_AddItemToObject(out, it->string,
-                              other ? join_node(it, other) : cJSON_Duplicate(it, 1));
-    }
+    /* Indexed, not scanned. `cJSON_GetObjectItem` is a linear walk, so looking up
+     * each of a's keys in b was O(n*m): a mantle of 20,000 runes cost 400 million
+     * string comparisons per merge, and a peer could force that with a message well
+     * inside any size ceiling. */
+    std::map<std::string, const cJSON*> in_b;
     for (const cJSON* it = b ? b->child : nullptr; it; it = it->next)
-        if (!get(a, it->string))
-            cJSON_AddItemToObject(out, it->string, cJSON_Duplicate(it, 1));
+        if (it->string) in_b.emplace(it->string, it);
+
+    cJSON* out = cJSON_CreateObject();
+    std::set<std::string> seen;
+    for (const cJSON* it = a ? a->child : nullptr; it; it = it->next) {
+        if (!it->string || !seen.insert(it->string).second) continue;
+        auto other = in_b.find(it->string);
+        cJSON_AddItemToObject(out, it->string,
+                              other != in_b.end() ? join_node(it, other->second)
+                                                  : cJSON_Duplicate(it, 1));
+    }
+    for (const auto& kv : in_b)
+        if (!seen.count(kv.first))
+            cJSON_AddItemToObject(out, kv.first.c_str(), cJSON_Duplicate(kv.second, 1));
     return out;
 }
 
 cJSON* join_node(const cJSON* a, const cJSON* b) {
-    if (is_orset(a) && is_orset(b)) {
-        OrSet j = join(orset_from_json(a), orset_from_json(b));
-        return orset_to_json(j);
-    }
-    if (cJSON_IsObject(a) && cJSON_IsObject(b)) return join_map(a, b);
-    /* Scalars that are not OrSets are structural constants (`"palabra": 1`).
-     * Taking either is fine because they are equal; taking `a` is deterministic. */
-    return cJSON_Duplicate(a, 1);
+    int ra = node_rank(a), rb = node_rank(b);
+    /* THE LAWS MUST HOLD ON INPUT THAT IS WRONG.
+     *
+     * The old fallback was "take a". When two peers held different kinds of node at
+     * one path — one sent by a buggy or hostile peer — join(a, b) kept a and
+     * join(b, a) kept b, so the two peers never converged again and nothing
+     * reported it (demonstrated 2026-09-16). One malformed message split a mesh
+     * permanently at that path.
+     *
+     * The fix is to make the choice a function of the two nodes rather than of
+     * argument order: a fixed ranking between kinds, and the smaller printed form
+     * between two scalars. That is a join on its own (a max over a total order), so
+     * commutativity, associativity and idempotence hold for every input, valid or
+     * not.
+     *
+     * This does NOT make bad input harmless — the higher-ranked node wins, and it
+     * may be the wrong one. Correctness is `validate`'s job, at the door. This is
+     * the guarantee that whatever gets past the door still converges. */
+    if (ra != rb) return cJSON_Duplicate(ra > rb ? a : b, 1);
+    if (ra == 2) return orset_to_json(join(orset_from_json(a), orset_from_json(b)));
+    if (ra == 3) return join_map(a, b);
+    std::string pa = printed(a), pb = printed(b);
+    return cJSON_Duplicate(pb < pa ? b : a, 1);
 }
 
 void add_field(cJSON* fields, const char* name, const cJSON* value, Mint& mint) {
@@ -91,6 +150,29 @@ Doc enrich(const cJSON* state, Mint& mint) {
         cJSON* mfields = cJSON_CreateObject();
         add_field(mfields, "id", get(m, "id"), mint);
         add_field(mfields, "domain", get(m, "domain"), mint);
+        /* A mantle's own `tags` and `rules` are part of the versioned slice
+         * (SPEC §4.2 hashes both) and were not carried here until 2026-09-16, so
+         * every merge that spliced mantles wrote them back empty. Nothing failed:
+         * the round-trip test had no fixture with either.
+         *
+         * `tags` is a map keyed by tag name, so each entry is its own register —
+         * the same granularity as a rune's `content`, for the same reason: two
+         * peers relating different tags should not conflict. `rules` is an ordered
+         * list whose meaning is Core's, so it is one register and a concurrent edit
+         * to it is a conflict rather than a guess.
+         *
+         * Neither is written when it holds its default, so a document that never
+         * used them enriches to exactly the bytes it did before. */
+        const cJSON* mtags = get(m, "tags");
+        if (mtags && cJSON_IsObject(mtags))
+            for (const cJSON* tg = mtags->child; tg; tg = tg->next)
+                if (tg->string) {
+                    std::string key = std::string("tags.") + tg->string;
+                    add_field(mfields, key.c_str(), tg, mint);
+                }
+        const cJSON* rules = get(m, "rules");
+        if (rules && !(cJSON_IsArray(rules) && cJSON_GetArraySize(rules) == 0))
+            add_field(mfields, "rules", rules, mint);
         cJSON_AddItemToObject(mo, "fields", mfields);
 
         cJSON* runes = cJSON_CreateObject();
@@ -120,6 +202,12 @@ Doc enrich(const cJSON* state, Mint& mint) {
                 add_field(f, key.c_str(), c, mint);
             }
             add_field(f, "placement", get(r, "placement"), mint);
+            /* Reserved by Core (SPEC §3.2/§3.7), hashed by §4.1, and lost on every
+             * merge until it was carried. One register: its meaning is undecided,
+             * so nothing here may merge inside it. */
+            const cJSON* relations = get(r, "relations");
+            if (relations && !(cJSON_IsArray(relations) && cJSON_GetArraySize(relations) == 0))
+                add_field(f, "relations", relations, mint);
             cJSON_AddItemToObject(ro, "fields", f);
 
             OrSet tags;
@@ -339,6 +427,10 @@ Doc flatten(const Doc& doc, const JoinPolicy& policy) {
             cJSON* content = cJSON_CreateObject();
             for (const cJSON* fi = f ? f->child : nullptr; fi; fi = fi->next) {
                 if (std::strncmp(fi->string, "content.", 8) != 0) continue;
+                /* A register with no live value is a key that was REMOVED — an
+                 * observed-remove retired it. Emitting it as `null` would put back
+                 * a key the user deleted, and `null` is a value. */
+                if (live_of(fi).values.empty()) continue;
                 cJSON_AddItemToObject(content, fi->string + 8,
                                       first_or_null(resolve(fi, policy.lookup(fi->string ? fi->string : ""))));
             }
@@ -351,11 +443,25 @@ Doc flatten(const Doc& doc, const JoinPolicy& policy) {
 
             cJSON_AddItemToObject(ro, "placement",
                                   first_or_null(resolve(get(f, "placement"), policy.lookup("placement"))));
-            cJSON_AddItemToObject(ro, "relations", cJSON_CreateArray());
+            {
+                Live rel = resolve(get(f, "relations"), policy.lookup("relations"));
+                cJSON* v = rel.values.empty() ? nullptr : decode(rel.values[0]);
+                cJSON_AddItemToObject(ro, "relations", v ? v : cJSON_CreateArray());
+            }
             cJSON_AddItemToArray(runes, ro);
         }
         cJSON_AddItemToObject(mo, "runes", runes);
-        cJSON_AddItemToObject(mo, "tags", cJSON_CreateObject());
+        {
+            cJSON* mtags = cJSON_CreateObject();
+            for (const cJSON* fi = mf ? mf->child : nullptr; fi; fi = fi->next) {
+                if (!fi->string || std::strncmp(fi->string, "tags.", 5) != 0) continue;
+                Live l = resolve(fi, policy.lookup(fi->string));
+                if (l.values.empty()) continue;  // a tag that was removed
+                cJSON* v = decode(l.values[0]);
+                if (v) cJSON_AddItemToObject(mtags, fi->string + 5, v);
+            }
+            cJSON_AddItemToObject(mo, "tags", mtags);
+        }
 
         cJSON* layout = cJSON_CreateObject();
         cJSON* edges = cJSON_CreateArray();
@@ -363,7 +469,11 @@ Doc flatten(const Doc& doc, const JoinPolicy& policy) {
             cJSON_AddItemToArray(edges, decode(v));
         cJSON_AddItemToObject(layout, "edges", edges);
         cJSON_AddItemToObject(mo, "layout", layout);
-        cJSON_AddItemToObject(mo, "rules", cJSON_CreateArray());
+        {
+            Live rl = resolve(get(mf, "rules"), policy.lookup("rules"));
+            cJSON* v = rl.values.empty() ? nullptr : decode(rl.values[0]);
+            cJSON_AddItemToObject(mo, "rules", v ? v : cJSON_CreateArray());
+        }
 
         cJSON_AddItemToArray(mantles, mo);
     }

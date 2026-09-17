@@ -42,7 +42,52 @@ void scan_fields(const cJSON* fields, const std::string& mantle,
     }
 }
 
+bool alive(const cJSON* node) { return !orset_from_json(get(node, "present")).empty(); }
+
+Conflict deleted_conflict() {
+    Conflict c;
+    c.kind = ConflictKind::deleted_while_edited;
+    c.field = "present";
+    c.sides = {enc::encode_str("deleted"), enc::encode_str("kept")};
+    std::sort(c.sides.begin(), c.sides.end());
+    return c;
+}
+
 }  // namespace
+
+void crdt::collect_live_tags(const cJSON* node, bool skip_own_present,
+                             std::set<std::string>& out) {
+    if (!node) return;
+    if (is_orset(node)) {
+        OrSet s = orset_from_json(node);
+        for (const auto& kv : s.adds)
+            if (!s.removes.count(kv.first)) out.insert(kv.first);
+        return;
+    }
+    if (!cJSON_IsObject(node)) return;
+    for (const cJSON* it = node->child; it; it = it->next) {
+        if (skip_own_present && it->string && std::strcmp(it->string, "present") == 0)
+            continue;
+        collect_live_tags(it, false, out);
+    }
+}
+
+bool crdt::raced_by_an_edit(const cJSON* node) {
+    OrSet present = orset_from_json(get(node, "present"));
+    if (!present.empty()) return false;
+    /* Not present is two different situations, and only one of them is a deletion.
+     * Deltas may arrive in any order, so an edit to a rune can land before the delta
+     * that created it: that rune has never been present HERE, and has no retired
+     * tags. A deletion always leaves retired tags behind — at least the presence it
+     * removed. Reporting the first as "deleted while edited" would ask a user to
+     * rescue something nobody deleted. */
+    if (present.removes.empty()) return false;
+    std::set<std::string> live;
+    collect_live_tags(node, true, live);
+    for (const auto& tag : live)
+        if (!present.removes.count(tag)) return true;
+    return false;
+}
 
 Digest Conflict::hash() const {
     /* Addressed through the same encoder as everything else, so the name of a
@@ -71,7 +116,10 @@ cJSON* conflict_to_json(const Conflict& c) {
      * backslash must not be able to produce malformed output — which is exactly
      * what the first version of this function did. */
     cJSON* o = cJSON_CreateObject();
-    cJSON_AddStringToObject(o, "kind", "conflict");
+    /* "conflict" for a value conflict, unchanged since the kind was introduced, so
+     * every value conflict keeps the name it already had. */
+    cJSON_AddStringToObject(o, "kind", c.kind == ConflictKind::deleted_while_edited
+                                           ? "deleted_while_edited" : "conflict");
     cJSON* at = cJSON_CreateObject();
     /* A glyph conflict is located by glyph name and nothing else — emitting an
      * empty `mantle` beside it would invite a reader to look for one. */
@@ -100,14 +148,36 @@ std::vector<Conflict> conflicts(const Doc& doc, const JoinPolicy& policy) {
     const cJSON* mantles = get(doc.root, "mantles");
     for (const cJSON* m = mantles ? mantles->child : nullptr; m; m = m->next) {
         std::string mname = m->string ? m->string : "";
+        if (!alive(m)) {
+            /* Report the deletion once, at the outermost thing deleted, and
+             * nothing inside it: a user asked about forty runes in a deleted
+             * mantle has been asked the wrong question forty times. */
+            if (raced_by_an_edit(m)) {
+                Conflict c = deleted_conflict();
+                c.mantle = mname;
+                out.push_back(std::move(c));
+            }
+            continue;
+        }
         /* Mantle-level registers (`id`, `domain`) conflict too. The first version
          * of this function looked only at runes and silently reported a converged
          * document while two peers disagreed about a mantle's domain. */
         scan_fields(get(m, "fields"), mname, "", policy, out);
 
         const cJSON* runes = get(m, "runes");
-        for (const cJSON* r = runes ? runes->child : nullptr; r; r = r->next)
-            scan_fields(get(r, "fields"), mname, r->string ? r->string : "", policy, out);
+        for (const cJSON* r = runes ? runes->child : nullptr; r; r = r->next) {
+            std::string rid = r->string ? r->string : "";
+            if (!alive(r)) {
+                if (raced_by_an_edit(r)) {
+                    Conflict c = deleted_conflict();
+                    c.mantle = mname;
+                    c.rune = rid;
+                    out.push_back(std::move(c));
+                }
+                continue;
+            }
+            scan_fields(get(r, "fields"), mname, rid, policy, out);
+        }
     }
 
     /* CONCURRENT REDECLARATION. Void Core asked for this to be surfaced rather
@@ -121,7 +191,14 @@ std::vector<Conflict> conflicts(const Doc& doc, const JoinPolicy& policy) {
      * undeclared field gets, so this goes through the same path. */
     const cJSON* glyphs = get(doc.root, "glyphs");
     for (const cJSON* g = glyphs ? glyphs->child : nullptr; g; g = g->next) {
-        if (orset_from_json(get(g, "present")).empty()) continue;  // undeclared
+        if (!alive(g)) {
+            if (raced_by_an_edit(g)) {
+                Conflict c = deleted_conflict();
+                c.glyph = g->string ? g->string : "";
+                out.push_back(std::move(c));
+            }
+            continue;
+        }
         const cJSON* fields = get(g, "fields");
         for (const cJSON* f = fields ? fields->child : nullptr; f; f = f->next) {
             Live l = resolve(f, policy.lookup(f->string ? f->string : ""));
@@ -139,6 +216,7 @@ std::vector<Conflict> conflicts(const Doc& doc, const JoinPolicy& policy) {
          * the document rather than to any mantle, and a stable place in the list
          * is what lets two peers enumerate them identically. */
         if (a.glyph.empty() != b.glyph.empty()) return b.glyph.empty();
+        if (a.kind != b.kind) return a.kind < b.kind;
         if (a.glyph != b.glyph) return a.glyph < b.glyph;
         if (a.mantle != b.mantle) return a.mantle < b.mantle;
         if (a.rune != b.rune) return a.rune < b.rune;

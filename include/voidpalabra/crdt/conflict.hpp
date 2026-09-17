@@ -22,7 +22,27 @@ namespace voidpalabra {
  * okf/concepts/conflict.md requires this to be a VALUE, not an error — "it has a
  * hash. It can be stored, synced, queried, tagged, and rendered." So it is a
  * struct with an address, not a diagnostic string. */
+enum class ConflictKind {
+    /* Two concurrent writes to one register both survived. */
+    values,
+
+    /* Something was deleted on one device while it was edited on another.
+     *
+     * Without this, the merge is silent: the thing is not present, so `flatten`
+     * does not show it, and the other device's edit simply vanishes from view on
+     * both devices. In an automatic sync that is a colleague's work disappearing
+     * with no message anywhere. Detectable because a removal records every live
+     * tag it saw (SPEC §5.7), so an edit it did NOT see is still distinguishable
+     * after the merge.
+     *
+     * `field` is "present" and `sides` are the two canonical strings "deleted" and
+     * "kept", in canonical order. Located at the outermost thing that was deleted:
+     * a rune edited inside a deleted mantle is reported at the mantle. */
+    deleted_while_edited,
+};
+
 struct Conflict {
+    ConflictKind kind = ConflictKind::values;
     std::string mantle;              // mantle name; empty for a glyph conflict
     std::string rune;                // spirit.id; empty for a mantle-level field
     /* Set only for a concurrent REDECLARATION — two peers gave one glyph name two
@@ -43,9 +63,12 @@ struct Conflict {
     Digest hash() const;
 };
 
-/* Every conflict in a document, ordered deterministically by (mantle, rune,
- * field) so two peers enumerate them identically. Covers mantle-level registers
- * as well as rune fields. Empty when there are none. */
+/* Every conflict in a document, ordered deterministically so two peers enumerate
+ * them identically. Covers mantle-level registers, rune fields, glyph
+ * declarations, and deletes that raced an edit. Value conflicts inside something
+ * that has been deleted are NOT reported: nothing shows them, and the question a
+ * user can actually answer is whether the deletion should stand. Empty when there
+ * are none. */
 std::vector<Conflict> conflicts(const Doc& doc, const JoinPolicy& policy = {});
 
 /* Render one conflict in the conflict.md shape:

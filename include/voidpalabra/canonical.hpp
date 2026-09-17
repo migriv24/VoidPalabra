@@ -139,8 +139,22 @@ std::string encode(const cJSON* value);
  * `decode(encode(x))` may differ from `x` in ways the encoding declares
  * meaningless. That is exactly what a store needs and is not a round-trip law.
  *
- * Returns nullptr on malformed input. Caller owns the tree. */
+ * Returns nullptr on malformed input. Caller owns the tree.
+ *
+ * The input may come from a peer, so it is treated as hostile: a count larger than
+ * the bytes that remain, a truncated value, nesting deeper than
+ * CJSON_NESTING_LIMIT, an unknown tag or an over-long varint is refused before
+ * anything is allocated for it. See src/encoding/decode.cpp for the failures that
+ * made each rule necessary. */
 cJSON* decode(const std::string& bytes);
+
+/* Is `bytes` the canonical encoding of the value it decodes to?
+ *
+ * True iff `encode(decode(bytes)) == bytes`. A register compares canonical bytes,
+ * so two spellings of one value would be read as two values — a conflict that
+ * flattens to the same thing on both sides. Anything a peer sends as a value MUST
+ * pass this before it is compared with anything. */
+bool is_canonical(const std::string& bytes);
 
 /* --- the NFC precondition ------------------------------------------------ */
 /*

@@ -31,7 +31,7 @@ The ordering rule, unchanged since founding:
 | **Phase 2** — [persistence](/concepts/persistence.md) | store, container, structural chunking and file I/O built | codecs; platform mapping |
 | **client surface** — [archive](/concepts/archive.md) | built, incl. atomic file I/O | — |
 | **Phase 3** — [history graph](/concepts/history-graph.md) | utterances, the graph, cuts and the linear extension built — **unblocked 2026-08-27** | replay; inverses; width / chain decomposition |
-| **Phase 4** — [reconciliation](/concepts/reconciliation.md) | not started | protocol unblocked; transport blocked on trust |
+| **Phase 4** — [reconciliation](/concepts/reconciliation.md) | the [replica](/concepts/replica.md) and the door for peer documents built (2026-09-16); the state machine not started | protocol unblocked; transport blocked on trust |
 | **Phase 5** — the CLI surface | not started | deliberately last |
 
 Language: **C++20, CMake, zero dependencies**, behind a C ABI when one is needed.
@@ -64,6 +64,16 @@ character-level editor would want run-length operations, and building that on
 per-character nodes would be wasteful.
 
 ## 3. The reconciliation state machine — **the biggest unmeasured risk**
+
+**Its two prerequisites landed 2026-09-16, pulled forward by a real client.** A
+machine that exchanges state needs something persistent to exchange —
+the [replica](/concepts/replica.md), which is also what makes a removal propagate —
+and a door that refuses what a peer should not have sent ([SPEC.md](../SPEC.md) §5.6).
+Both were built before the machine because the client's own sync loop needed them
+immediately; the machine itself is still not started. What it must now also carry is
+recorded in [transport shape](/design/transport-shape.md): bounded parsing, a
+transition on elapsed time for every waiting state, and a second message class for
+ephemeral presence.
 
 Per [transport shape](/design/transport-shape.md) §3, the protocol's *algebra* is
 not blocked by the trust model; only the *transport* is. So the pure state
@@ -175,7 +185,11 @@ mattering at device two.
 # Phase 4 — reconciliation
 
 1. The **pure state machine** — see "the next three things" §2. **Not blocked.**
-2. **Trust** — signed utterances, public-key identity, capabilities. **The gate.**
+2. **Trust** — signed *deltas* (what travels), public-key identity, capabilities
+   with regions decidable from the change alone. **The gate.** Six findings from the
+   first real request, two of which rule out the obvious design, are in
+   [open questions](/design/open-questions.md) §6.1. Revocation poisoning honest
+   descendants is the one that blocks shipping.
 3. [Reconciliation](/concepts/reconciliation.md): range-based set reconciliation.
 4. [Tier](/concepts/peer-and-tier.md) and capability declaration; State / Recent /
    Full peers, plus [compute](/concepts/compute.md) capability on one statement.

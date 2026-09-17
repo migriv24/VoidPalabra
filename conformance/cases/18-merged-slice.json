@@ -1,0 +1,163 @@
+{
+	"kind":	"merged_slice",
+	"about":	"§5.2–§5.4 — what a user of either peer sees after a merge. Both defects pinned here lost data with no error and no attacker",
+	"cases":	[{
+			"name":	"mantles named a, r and z, merged with itself",
+			"in":	[{
+					"mantles":	[{
+							"name":	"a",
+							"runes":	[]
+						}, {
+							"name":	"r",
+							"runes":	[]
+						}, {
+							"name":	"z",
+							"runes":	[]
+						}]
+				}, {
+					"mantles":	[{
+							"name":	"a",
+							"runes":	[]
+						}, {
+							"name":	"r",
+							"runes":	[]
+						}, {
+							"name":	"z",
+							"runes":	[]
+						}]
+				}],
+			"out":	"v:1121d6c1ca1159d44a9239453ddd7dfad6f582b523ba8dc1480e1513f31711a6"
+		}, {
+			"name":	"a and r merged with a, r and z — must equal (used to produce zero mantles)",
+			"in":	[{
+					"mantles":	[{
+							"name":	"a",
+							"runes":	[]
+						}, {
+							"name":	"r",
+							"runes":	[]
+						}]
+				}, {
+					"mantles":	[{
+							"name":	"a",
+							"runes":	[]
+						}, {
+							"name":	"r",
+							"runes":	[]
+						}, {
+							"name":	"z",
+							"runes":	[]
+						}]
+				}],
+			"out":	"v:1121d6c1ca1159d44a9239453ddd7dfad6f582b523ba8dc1480e1513f31711a6"
+		}, {
+			"name":	"a mantle with tags, rules and a rune with relations, merged with itself",
+			"in":	[{
+					"mantles":	[{
+							"id":	"m1",
+							"name":	"notes",
+							"tags":	{
+								"urgent":	{
+									"near":	{
+										"soon":	0.8
+									}
+								}
+							},
+							"rules":	["when x then y"],
+							"runes":	[{
+									"spirit":	{
+										"id":	"rune_1",
+										"name":	"a"
+									},
+									"glyph":	"text",
+									"relations":	[{
+											"to":	"rune_2"
+										}],
+									"content":	{
+										"v":	1
+									}
+								}]
+						}]
+				}, {
+					"mantles":	[{
+							"id":	"m1",
+							"name":	"notes",
+							"tags":	{
+								"urgent":	{
+									"near":	{
+										"soon":	0.8
+									}
+								}
+							},
+							"rules":	["when x then y"],
+							"runes":	[{
+									"spirit":	{
+										"id":	"rune_1",
+										"name":	"a"
+									},
+									"glyph":	"text",
+									"relations":	[{
+											"to":	"rune_2"
+										}],
+									"content":	{
+										"v":	1
+									}
+								}]
+						}]
+				}],
+			"out":	"v:6eb32438dd6c3e100650b06f9d3e4c80695d8dccf8fc091549b6c43e54597704"
+		}, {
+			"name":	"the same merged with a peer that holds nothing — must equal (the merge keeps what one side had)",
+			"in":	[{
+					"mantles":	[{
+							"id":	"m1",
+							"name":	"notes",
+							"tags":	{
+								"urgent":	{
+									"near":	{
+										"soon":	0.8
+									}
+								}
+							},
+							"rules":	["when x then y"],
+							"runes":	[{
+									"spirit":	{
+										"id":	"rune_1",
+										"name":	"a"
+									},
+									"glyph":	"text",
+									"relations":	[{
+											"to":	"rune_2"
+										}],
+									"content":	{
+										"v":	1
+									}
+								}]
+						}]
+				}, {
+					"mantles":	[]
+				}],
+			"out":	"v:6eb32438dd6c3e100650b06f9d3e4c80695d8dccf8fc091549b6c43e54597704"
+		}, {
+			"name":	"without the tags, rules and relations — must DIFFER (they are content, and used to be dropped)",
+			"in":	[{
+					"mantles":	[{
+							"id":	"m1",
+							"name":	"notes",
+							"runes":	[{
+									"spirit":	{
+										"id":	"rune_1",
+										"name":	"a"
+									},
+									"glyph":	"text",
+									"content":	{
+										"v":	1
+									}
+								}]
+						}]
+				}, {
+					"mantles":	[]
+				}],
+			"out":	"v:f0c73e622df4b788ec0ef1d0339503edd40b08b73288f3e36791f425bdf1d2e6"
+		}]
+}

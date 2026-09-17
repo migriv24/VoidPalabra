@@ -33,6 +33,8 @@ add_library(voidpalabra STATIC
   src/crdt/document.cpp
   src/crdt/conflict.cpp
   src/crdt/sequence.cpp
+  src/crdt/validate.cpp
+  src/crdt/replica.cpp
   src/store/chunk.cpp
   src/store/blocks.cpp
   src/store/container.cpp
@@ -106,6 +108,22 @@ if(NOT MSVC)
   target_compile_options(voidpalabra_glyphs_test PRIVATE -Wall -Wextra)
 endif()
 add_test(NAME glyphs COMMAND voidpalabra_glyphs_test)
+
+add_executable(voidpalabra_replica_test tests/replica_test.cpp)
+target_include_directories(voidpalabra_replica_test PRIVATE vendor)
+target_link_libraries(voidpalabra_replica_test PRIVATE voidpalabra)
+if(NOT MSVC)
+  target_compile_options(voidpalabra_replica_test PRIVATE -Wall -Wextra)
+endif()
+add_test(NAME replica COMMAND voidpalabra_replica_test)
+
+add_executable(voidpalabra_hostile_test tests/hostile_test.cpp)
+target_include_directories(voidpalabra_hostile_test PRIVATE vendor)
+target_link_libraries(voidpalabra_hostile_test PRIVATE voidpalabra)
+if(NOT MSVC)
+  target_compile_options(voidpalabra_hostile_test PRIVATE -Wall -Wextra)
+endif()
+add_test(NAME hostile COMMAND voidpalabra_hostile_test)
 
 add_executable(voidpalabra_utterance_test tests/utterance_test.cpp)
 target_include_directories(voidpalabra_utterance_test PRIVATE vendor)

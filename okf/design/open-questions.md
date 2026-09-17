@@ -255,6 +255,86 @@ Open specifics:
 - Key management, rotation, and revocation in a system with no central authority
   and no guaranteed connectivity.
 
+## 6.1 What a real client's request settled — **2026-09-16**
+
+The first client to ask for trust (LAN sharing between members of one organization:
+profiles, admins, an ex-member who must not be able to write) asked for **signed
+utterances** and **Meadowcap-shaped capabilities**, in that order. Working through
+the request against what is built produced six findings. None of them is code yet,
+deliberately: each one changes what the code would have to be, and two of them say
+the obvious code would be wrong.
+
+**1. Sign what travels.** A signature protects the unit that crosses the wire. The
+client's sync ships *enriched documents*; it does not ship utterances at all. Signing
+utterances would have protected nothing on the path actually in use.
+
+And a whole document cannot carry authorship by being signed: a document merged from
+five peers has five authors, so a signature on it proves who *relayed* it, not who
+*wrote* any part of it. Per-element authorship in a state-based CRDT needs **signed
+deltas**. The [replica](/concepts/replica.md) makes the direction concrete: every tag
+it mints carries its id, so if a replica id is bound to a signing key, every *add* in
+a delta is attributable to the key that signed the delta.
+
+*Removes* are the hard part: a remove carries no tag of its own, only the tags it
+retired. A remove is attributable only through the signature on the delta that
+carried it, so **a peer that relays a full document cannot prove who retired what**.
+Either removes travel only inside signed deltas, or relaying needs a design of its
+own. Undecided, and it decides the wire format.
+
+**2. A key-agreement key cannot sign.** The client proposed signing with its profile
+key, which is an X25519 keypair — a key-exchange key. X25519 has no signature
+operation; signing needs a signature scheme (Ed25519). Deriving both from one seed is
+possible, but reusing one key across two protocols is how cross-protocol attacks
+happen. A member has **two** keys, and the registry names the signing one.
+
+**3. A capability's region must be decidable from the change alone, never from the
+state.** The client proposed regions like *"runes carrying a tag"*. That region
+depends on a rune's tags **at the moment of checking**, and tags are concurrent
+state: peer P checks a change before it has merged a concurrent retag and admits it;
+peer Q checks after and refuses it. Admission is not a join — P and Q now hold
+different histories and nothing will ever reconcile them.
+
+Meadowcap's areas are syntactic (a path prefix, a subspace, a time range) for exactly
+this reason. So a region may name things **written in the change** — a mantle name, a
+glyph name, a rune id — and not a tag expression. This answers the question above
+(*"can a tag carry authority?"*): **no**, and the reason is now concrete. It is not
+only that tags are ordinary mergeable data; it is that state-dependent admission
+diverges.
+
+**4. The journal does not say which mantle a command changed.** Void Core commands
+act on the `active` mantle, and a journal entry (`VoidCore:SPEC.md §6.2`) carries the
+canonical command line, not its target. So an utterance cannot be checked against a
+mantle-scoped capability without re-deriving `active`, and re-deriving is exactly the
+state-dependence finding 3 rules out. **An ask for Void Core when capabilities are
+built**: the target mantle on the entry. Not raised yet, because nothing consumes it
+yet.
+
+**5. Revocation poisons descendants.** With no global time, a peer that has not yet
+learned of a revocation builds honest work on top of the revoked member's last change.
+A peer that has learned refuses that change — and can then never place the honest
+descendants, which name it as a parent. The same shape as finding 3, one level up.
+Candidate answers ("valid if authorized in its causal past"; revocation as a named cut)
+each have costs nobody has measured. **Blocks shipping capabilities**, not designing
+them.
+
+**6. Precedence is a presentation, never a resolution.** The client wants
+"admins-first" to *offer* the admin's side of a conflict as the default and never to
+resolve silently. That is right, and the reason is the same as finding 3: roles are
+synced state too, so "which side is the admin's" is evaluated against a registry that
+differs between peers mid-sync. An offered default tolerates that disagreement; a
+silent resolution would turn it into divergence.
+
+It needs one thing the conflict model does not have yet: **authorship per side**. A
+conflict's sides are values; which replica wrote each one is recoverable from the tags
+but not exposed. Small, and it waits on finding 1, because an unsigned author is a
+claim.
+
+**What was built instead**, because it is needed whatever trust looks like: the door.
+A document from a peer is now validated before any part of it is merged
+([SPEC.md](../../SPEC.md) §5.6), and the join converges even on what gets past it.
+Neither says *who* may send something. Both are what make "who may" worth checking,
+because before them one malformed message from anyone could split a mesh for good.
+
 ---
 
 # 7. Compute — what is settled and what is not **(new pillar, 2026-07-27)**

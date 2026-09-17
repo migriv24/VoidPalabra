@@ -120,6 +120,67 @@ The right-hand column is the **transport holiday's** job, and it is the column w
 a LAN implementation and a BLE implementation genuinely differ. Keeping the
 difference on that side is the whole design.
 
+# What a stand-in transport taught — **2026-09-16**
+
+A client built its own sealed LAN transport while this one does not exist, and
+reported two lessons it wanted this design to keep. Both are right, and both turn
+out to say more than they first appear to once they are generalized past one client.
+
+**1. "A receive ceiling per message" is necessary and nowhere near sufficient.** The
+client added `max_bytes` after noticing a receiver would hold any size in memory.
+Working from that lesson found that every dangerous payload this library could be
+sent was *small*:
+
+- **amplification** — nine bytes declaring 2⁶³ sequence elements made the decoder
+  allocate until the process died;
+- **type confusion** — one node of the wrong kind made the join non-commutative, so
+  two peers never converged again, with no error;
+- **quadratic work** — map lookups by linear scan made merging two 20,000-rune
+  mantles cost 400 million comparisons.
+
+All three are fixed and pinned ([SPEC.md](../../SPEC.md) §5.6,
+`tests/hostile_test.cpp`). The general rule, for the state machine when it exists:
+**every parser bounds its work by its input**, not only its input by a constant. A
+ceiling on the socket read belongs in the right-hand column; bounded parsing belongs
+in the left, because it is the same on every transport.
+
+**2. "A timeout on every blocking read" is the sans-IO argument, arrived at from the
+other side.** The client's join waits on a human to click Allow, and a thread that
+cannot time out cannot be cancelled. In a sans-IO design **nothing blocks**: the
+machine is a function, time is one of its inputs (`step(state, event, now)`), and
+cancelling is simply not calling it again. "Waiting for approval" is a state the
+machine is in, not a thread that is stuck. Timeouts therefore stay in the right-hand
+column as they already were, and the left-hand column gains an obligation: every
+state that waits must have a transition on elapsed time, or it is a leak with a nicer
+name.
+
+# Ephemeral messages
+
+The same client needs **presence** — who is here, what they have selected — and
+asked whether the protocol has a notion of messages that do not enter history. It
+should, and the rules for one are sharper than "not versioned":
+
+- **A different message type, not a flag.** Presence must be structurally unable to
+  carry a document or a delta, so that no bug can route one into a merge. A flag on a
+  shared type is one missed check away from versioning a cursor.
+- **Never merged, never enriched, never persisted.** It does not reach a
+  [replica](/concepts/replica.md) at all.
+- **Latest wins, per sender and topic, by a sender-local sequence number** — not a
+  clock, and not causal order, because none of the history-graph guarantees apply and
+  none are needed. A duplicate or a stale message is dropped by the number.
+- **Expires on the receiver's clock.** Consulting wall-clock time is forbidden for
+  anything that decides causality ([history graph](/concepts/history-graph.md)).
+  Presence decides nothing, so a receiver may expire it by its own elapsed time —
+  and should, because a peer that vanishes sends no goodbye.
+- **Sealed like everything else.** Presence leaks more about people than most
+  content does: who is online, and when.
+- **Bounded, small, and cheap to refuse.** Of every message kind, this is the one a
+  misbehaving peer can send most often.
+
+Not built: there is no state machine yet for it to belong to. Recorded so that the
+reconciliation message types are designed with a second class beside them rather
+than having one bolted on.
+
 # The PROP note, cashed
 
 [Academic foundations](/references/academic-foundations.md) §7 places PROPs at

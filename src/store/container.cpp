@@ -26,13 +26,17 @@ void put_u64(std::string& s, std::uint64_t v) {
     for (int i = 0; i < 8; ++i) s.push_back(static_cast<char>((v >> (i * 8)) & 0xFF));
 }
 bool take(const std::string& s, std::size_t& i, std::size_t n, std::string& out) {
-    if (i + n > s.size()) return false;
+    /* Written as a subtraction, not `i + n > size`. A length read from a hostile
+     * file can be close to SIZE_MAX, and the addition then wraps to a small number
+     * that passes the check — after which `i` jumps backwards and the reader walks
+     * bytes it has already read. */
+    if (i > s.size() || n > s.size() - i) return false;
     out = s.substr(i, n);
     i += n;
     return true;
 }
 bool take_u32(const std::string& s, std::size_t& i, std::uint32_t& v) {
-    if (i + 4 > s.size()) return false;
+    if (i > s.size() || s.size() - i < 4) return false;
     v = 0;
     for (int k = 0; k < 4; ++k)
         v |= static_cast<std::uint32_t>(static_cast<unsigned char>(s[i + k])) << (k * 8);
@@ -40,7 +44,7 @@ bool take_u32(const std::string& s, std::size_t& i, std::uint32_t& v) {
     return true;
 }
 bool take_u64(const std::string& s, std::size_t& i, std::uint64_t& v) {
-    if (i + 8 > s.size()) return false;
+    if (i > s.size() || s.size() - i < 8) return false;
     v = 0;
     for (int k = 0; k < 8; ++k)
         v |= static_cast<std::uint64_t>(static_cast<unsigned char>(s[i + k])) << (k * 8);

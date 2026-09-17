@@ -1,0 +1,320 @@
+{
+	"kind":	"validate",
+	"about":	"§5.6 — the door a peer's document comes through. Everything below was either accepted or crashed the reference implementation before 2026-09-16",
+	"cases":	[{
+			"name":	"an empty delta",
+			"in":	{
+				"palabra":	1
+			},
+			"out":	"valid"
+		}, {
+			"name":	"a mantle with one register",
+			"in":	{
+				"palabra":	1,
+				"mantles":	{
+					"m":	{
+						"present":	{
+							"a":	{
+								"A_1":	"31"
+							},
+							"r":	[]
+						},
+						"fields":	{
+							"id":	{
+								"a":	{
+									"A_2":	"05026d31"
+								},
+								"r":	[]
+							}
+						},
+						"runes":	{
+						},
+						"edges":	{
+							"a":	{
+							},
+							"r":	[]
+						}
+					}
+				}
+			},
+			"out":	"valid"
+		}, {
+			"name":	"a one-field delta with no presence at all",
+			"in":	{
+				"palabra":	1,
+				"mantles":	{
+					"m":	{
+						"runes":	{
+							"rune_1":	{
+								"fields":	{
+									"content.body":	{
+										"a":	{
+											"B_9":	"05026869"
+										},
+										"r":	["A_3"]
+									}
+								}
+							}
+						}
+					}
+				}
+			},
+			"out":	"valid"
+		}, {
+			"name":	"mantles honestly named a and r",
+			"in":	{
+				"palabra":	1,
+				"mantles":	{
+					"a":	{
+						"present":	{
+							"a":	{
+								"A_1":	"31"
+							},
+							"r":	[]
+						}
+					},
+					"r":	{
+						"present":	{
+							"a":	{
+								"A_2":	"31"
+							},
+							"r":	[]
+						}
+					}
+				}
+			},
+			"out":	"valid"
+		}, {
+			"name":	"a glyph declaration that is a map",
+			"in":	{
+				"palabra":	1,
+				"glyphs":	{
+					"stat":	{
+						"present":	{
+							"a":	{
+								"A_1":	""
+							},
+							"r":	[]
+						},
+						"fields":	{
+							"descriptor":	{
+								"a":	{
+									"A_2":	"0800"
+								},
+								"r":	[]
+							}
+						}
+					}
+				}
+			},
+			"out":	"valid"
+		}, {
+			"name":	"presence that is a number, not an OrSet",
+			"in":	{
+				"palabra":	1,
+				"mantles":	{
+					"m":	{
+						"present":	7
+					}
+				}
+			},
+			"out":	"refused"
+		}, {
+			"name":	"an OrSet whose adds are an array",
+			"in":	{
+				"palabra":	1,
+				"mantles":	{
+					"m":	{
+						"present":	{
+							"a":	[1, 2],
+							"r":	[]
+						}
+					}
+				}
+			},
+			"out":	"refused"
+		}, {
+			"name":	"an OrSet with a third member",
+			"in":	{
+				"palabra":	1,
+				"mantles":	{
+					"m":	{
+						"present":	{
+							"a":	{
+							},
+							"r":	[],
+							"x":	1
+						}
+					}
+				}
+			},
+			"out":	"refused"
+		}, {
+			"name":	"uppercase hex",
+			"in":	{
+				"palabra":	1,
+				"mantles":	{
+					"m":	{
+						"fields":	{
+							"id":	{
+								"a":	{
+									"A_2":	"05026D31"
+								},
+								"r":	[]
+							}
+						}
+					}
+				}
+			},
+			"out":	"refused"
+		}, {
+			"name":	"odd-length hex",
+			"in":	{
+				"palabra":	1,
+				"mantles":	{
+					"m":	{
+						"fields":	{
+							"id":	{
+								"a":	{
+									"A_2":	"05026d3"
+								},
+								"r":	[]
+							}
+						}
+					}
+				}
+			},
+			"out":	"refused"
+		}, {
+			"name":	"a value spelled non-canonically (1.0 as a float)",
+			"in":	{
+				"palabra":	1,
+				"mantles":	{
+					"m":	{
+						"fields":	{
+							"id":	{
+								"a":	{
+									"A_2":	"043ff0000000000000"
+								},
+								"r":	[]
+							}
+						}
+					}
+				}
+			},
+			"out":	"refused"
+		}, {
+			"name":	"a value with a count larger than its bytes",
+			"in":	{
+				"palabra":	1,
+				"mantles":	{
+					"m":	{
+						"fields":	{
+							"id":	{
+								"a":	{
+									"A_2":	"07ffffffffffffff7f"
+								},
+								"r":	[]
+							}
+						}
+					}
+				}
+			},
+			"out":	"refused"
+		}, {
+			"name":	"a field the shape does not have",
+			"in":	{
+				"palabra":	1,
+				"mantles":	{
+					"m":	{
+						"fields":	{
+							"secret":	{
+								"a":	{
+								},
+								"r":	[]
+							}
+						}
+					}
+				}
+			},
+			"out":	"refused"
+		}, {
+			"name":	"a content key with no name",
+			"in":	{
+				"palabra":	1,
+				"mantles":	{
+					"m":	{
+						"runes":	{
+							"rune_1":	{
+								"fields":	{
+									"content.":	{
+										"a":	{
+										},
+										"r":	[]
+									}
+								}
+							}
+						}
+					}
+				}
+			},
+			"out":	"refused"
+		}, {
+			"name":	"an empty tag",
+			"in":	{
+				"palabra":	1,
+				"mantles":	{
+					"m":	{
+						"present":	{
+							"a":	{
+							},
+							"r":	[""]
+						}
+					}
+				}
+			},
+			"out":	"refused"
+		}, {
+			"name":	"an unknown root member",
+			"in":	{
+				"palabra":	1,
+				"extra":	{
+				}
+			},
+			"out":	"refused"
+		}, {
+			"name":	"a newer document shape",
+			"in":	{
+				"palabra":	2
+			},
+			"out":	"refused"
+		}, {
+			"name":	"a member named twice",
+			"in":	{
+				"palabra":	1,
+				"mantles":	{
+				},
+				"mantles":	{
+				}
+			},
+			"out":	"refused"
+		}, {
+			"name":	"a glyph declaration that is a string, not a map",
+			"in":	{
+				"palabra":	1,
+				"glyphs":	{
+					"stat":	{
+						"fields":	{
+							"descriptor":	{
+								"a":	{
+									"A_2":	"05026869"
+								},
+								"r":	[]
+							}
+						}
+					}
+				}
+			},
+			"out":	"refused"
+		}]
+}

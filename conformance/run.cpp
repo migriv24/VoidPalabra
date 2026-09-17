@@ -23,6 +23,7 @@
 #include "voidpalabra/canonical.hpp"
 #include "voidpalabra/join.hpp"
 #include "voidpalabra/utterance.hpp"
+#include "voidpalabra/replica.hpp"
 
 #include "cJSON.h"
 
@@ -111,6 +112,52 @@ bool evaluate(const std::string& kind, const cJSON* c, std::string& out,
             std::string acc;
             for (const Conflict& k : conflicts(merged)) acc += to_hex(k.hash());
             out = acc.empty() ? "none" : acc;
+            return true;
+        }
+        if (kind == "validate") {
+            /* `in` is an enriched document or a delta, exactly as a peer would send
+             * it. `out` is "valid" or "refused". Pins the door (SPEC §5.6), so an
+             * implementation that lets through what this one refuses — or refuses
+             * what this one accepts — is caught before two such peers meet. */
+            out = validate(input) ? "valid" : "refused";
+            return true;
+        }
+        if (kind == "merged_slice") {
+            /* `in` is [state_a, state_b]. `out` is the version name of the merged
+             * slice — what a user of either peer would actually see. The join kind
+             * pins the metadata; this pins the result, which is where the
+             * mantles-named-a-and-r defect showed (zero mantles out of three). */
+            const cJSON* a = cJSON_GetArrayItem(const_cast<cJSON*>(input), 0);
+            const cJSON* b = cJSON_GetArrayItem(const_cast<cJSON*>(input), 1);
+            if (!a || !b) { why = "merged_slice needs a two-element 'in'"; return false; }
+            CounterMint ma("A"), mb("B");
+            Doc merged = flatten(join(enrich(a, ma), enrich(b, mb)));
+            out = version_name(merged.root);
+            return true;
+        }
+        if (kind == "replica_doc") {
+            /* `in` is {"id": "...", "observe": [state, state, ...]}: one replica
+             * observing a sequence of states. `out` is the hex of its enriched
+             * document's canonical bytes.
+             *
+             * This pins what an implementation MUST agree on for deltas to be
+             * interoperable: the tag format "<id>_<n>", the order tags are minted
+             * in, that a removal retires presence and records every live tag it
+             * saw (§5.7), and that observing an unchanged state mints nothing. */
+            const cJSON* id = cJSON_GetObjectItemCaseSensitive(const_cast<cJSON*>(input), "id");
+            const cJSON* steps = cJSON_GetObjectItemCaseSensitive(const_cast<cJSON*>(input), "observe");
+            if (!id || !cJSON_IsString(id) || !steps || !cJSON_IsArray(steps)) {
+                why = "replica_doc needs {id, observe:[...]}";
+                return false;
+            }
+            Replica r;
+            std::string err;
+            if (!Replica::create(id->valuestring, r, &err)) { out = "refused"; return true; }
+            for (const cJSON* s = steps->child; s; s = s->next) {
+                Replica::Observed o = r.observe(s);
+                if (!o.ok) { out = "refused"; return true; }
+            }
+            out = to_hex_bytes(canon_doc(r.doc()));
             return true;
         }
         if (kind == "utterance") {
@@ -304,6 +351,9 @@ int main(int argc, char** argv) {
         "conformance/cases/14-linear-extension.json",
         "conformance/cases/15-glyph-declarations.json",
         "conformance/cases/16-glyph-merge.json",
+        "conformance/cases/17-validation.json",
+        "conformance/cases/18-merged-slice.json",
+        "conformance/cases/19-replica.json",
     };
 
     std::printf("Void Palabra conformance — SPEC.md v%d%s\n\n", kCanonVersion,

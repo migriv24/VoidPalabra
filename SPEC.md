@@ -349,12 +349,13 @@ a write retires what it observed and adds one value), and as a **keyed map**
 { "palabra": 1,
   "mantles": { "<mantle name>": {
       "present": <OrSet>,
-      "fields":  { "id": <Reg>, "domain": <Reg> },
+      "fields":  { "id": <Reg>, "domain": <Reg>,
+                   "tags.<tag>": <Reg>, "rules": <Reg> },
       "runes":   { "<spirit.id>": {
           "present": <OrSet>,
           "fields":  { "spirit.name": <Reg>, "glyph": <Reg>,
                        "facets.<facet>": <Reg>, "content.<key>": <Reg>,
-                       "placement": <Reg> },
+                       "placement": <Reg>, "relations": <Reg> },
           "tags":    <OrSet> } },
       "edges":   <OrSet> } },
   "glyphs":  { "<glyph name>": {
@@ -369,6 +370,16 @@ a write retires what it observed and adds one value), and as a **keyed map**
 - **Each content key MUST be its own register.** Two peers editing different fields
   of one rune therefore do not conflict, which is most of what makes concurrent
   editing tolerable.
+- **Every member of the §4 canonical form MUST be carried.** A mantle's own `tags`
+  (one register per tag, like `content`) and `rules` (one register), and a rune's
+  `relations` (one register), were omitted until 2026-09-16. All three are hashed
+  by §4, so `flatten(enrich(x)) == x` was false for any mantle that used them, and
+  every merge that spliced mantles wrote them back empty. `rules` and `relations`
+  are written only when they are not their default (absent or an empty array), so a
+  document that never used them has the same enriched bytes it always had.
+- **A register with no live value MUST NOT be emitted by `flatten` as `null`** where
+  the key is optional (`content.*`, `tags.*`). No live value is what a removal
+  leaves, and `null` is a value the user did not write.
 - **A declaration MUST be ONE register holding the whole descriptor** — the opposite
   granularity, and deliberately so. Splitting content per key means two peers
   editing different fields of one rune do not conflict. Splitting a *schema* per
@@ -414,6 +425,20 @@ renderer given `""` prints a blank where a name should be. Implementations MUST
 enumerate conflicts in a deterministic order so that two peers list them
 identically.
 
+**A conflict is one of two kinds.** `"kind": "conflict"` is the value conflict above
+— its rendering, and therefore its name, is unchanged. `"kind":
+"deleted_while_edited"` reports a thing that one peer removed while another changed
+something beneath it (§5.7): `field` is `"present"`, and `sides` are the canonical
+strings `"deleted"` and `"kept"`, in canonical order.
+
+- It MUST be reported at the **outermost** removed thing only: a mantle, else a
+  rune, else a glyph declaration.
+- A thing whose `present` set has **no retired tags** has never been present on this
+  peer and MUST NOT be reported — deltas arrive in any order, and an edit can land
+  before the creation it edits.
+- Value conflicts inside a removed thing MUST NOT be reported. Nothing shows them,
+  and the question a user can answer is whether the removal stands.
+
 ### 5.4 The round-trip law
 
 ```
@@ -433,7 +458,10 @@ every one of them.
 
 The correct use is to **splice**: take the slice out of the flattened result and
 put it into the document you already have, which keeps this device's peer-local
-resolution its own. Void Core 0.2.14 §2(c) makes the same point from the other
+resolution its own. A host whose document is also governed by Void Core's
+memento-based undo MUST clear or rebase that undo stack when it splices; otherwise
+an undo reverts the merged changes, and the next observation (§5.7) records the
+revert as this peer's own act. Void Core 0.2.14 §2(c) makes the same point from the other
 side — *"if you RECONSTRUCT the state document rather than round-tripping it, you
 will drop `glyphs`"* — and the document will grow keys again.
 
@@ -443,6 +471,94 @@ Tags and retired tags accumulate and this specification does **not** say how to
 prune them. Safe pruning requires knowing what every peer has seen, which an open
 mesh does not know — the same property that makes reconciliation cheap. This is a
 genuinely unsolved problem and is stated here so no implementer assumes otherwise.
+
+### 5.6 Documents from peers **[normative]**
+
+A document or delta received from another peer is **hostile input**, and an
+implementation MUST check it before any part of it is joined, flattened or
+compared. The check is all-or-nothing: a document with one bad member is refused
+whole.
+
+| rule | the failure it prevents |
+|---|---|
+| the root is `{"palabra": 1, "mantles"?, "glyphs"?}` and nothing else | merging structure this implementation cannot check; a newer shape is refused, stopping sync visibly |
+| every node is a kind (§5.2) its position allows | a node of the wrong kind made `join` non-commutative, and two peers never converged again |
+| every OrSet is exactly `{"a": {tag: lowercase hex}, "r": [tag]}` | an `a` that was an array crashed the reader; `"AB"` and `"ab"` decoded to different bytes |
+| no object names a member twice | parsers disagree about which duplicate wins, so two peers read one document differently |
+| every register, tag-set and edge value is canonical (`encode(decode(v)) == v`) | one value spelled two ways was read as two values — a conflict that flattens identically on both sides |
+| names and tags are non-empty; a declaration value is a map | members Core cannot hold |
+
+A delta is a document with parts missing, so every member is optional.
+
+**Decoding (§2) MUST be bounded by its input**, because a per-message size ceiling
+stops none of the following — each payload is a few bytes:
+
+- a count or length larger than the bytes that remain MUST be refused before
+  anything is allocated for it (nine bytes once demanded 2⁶³ elements);
+- running out of input inside a value MUST be a failure (a truncated sequence once
+  decoded to `[true, null, null]`);
+- nesting deeper than the JSON parser's own limit MUST be refused (it overflowed the
+  stack);
+- a varint longer than ten bytes, an unknown tag, and a map key that is not a
+  string MUST be refused.
+
+**The join MUST converge on input that fails all of the above**, as a second line of
+defence. Where two documents disagree about the kind of node at a path, the result
+MUST be a function of the two nodes and not of argument order: a map outranks an
+OrSet, which outranks anything else, and between two other values the smaller
+printed form is kept. That is a join on its own, so the three laws hold for any
+input. It makes a bad document convergent, not correct; correctness is this
+section's check.
+
+**An OrSet is recognised by its `r` being an array.** Mantles and glyph declarations
+are keyed by user-chosen names, and a `mantles` map holding mantles named `a` and `r`
+was read as an OrSet by an implementation that tested for member names — every mantle
+was lost on the next merge. A map's children are always objects; an OrSet's `r` is
+always an array.
+
+### 5.7 Replicas and removal **[normative]**
+
+A **replica** is a peer's enriched document, together with the identity and counter
+that minted its tags, **kept between exchanges**. An implementation offering
+removal MUST provide one: a document rebuilt from bare state before an exchange has
+forgotten every removal, and merging it returns what was removed.
+
+**Tags.** A replica's tags are `<id>_<n>`, with `n` a decimal counter starting at 1
+that never decreases and is never reused. `id` is 16–128 characters of
+`[A-Za-z0-9-]`; it contains no `_`, so one replica's tags cannot be parsed as
+another's. An id MUST be unique per replica instance.
+
+**Observing** a state records the difference between the state and what the replica
+shows (`flatten` under its policy):
+
+1. A register whose shown value equals the state's value MUST NOT be written, **even
+   if the register holds more than one value**. Otherwise observing resolves every
+   conflict to whatever was displayed.
+2. Observing `flatten` of the replica itself MUST record no change and mint no tag.
+3. Something shown and absent from the state MUST be removed: its `present` tags are
+   retired, and **every live tag beneath it** (fields, tags, and for a mantle its runes
+   and edges) MUST be added to the same `present` set's retired tags. This record of
+   what the removal saw is what makes §5.3's `deleted_while_edited` detectable.
+4. Something not shown and absent from the state MUST NOT be touched — in
+   particular, observing an absence MUST NOT settle a pending `deleted_while_edited`
+   conflict.
+5. A state that cannot be encoded MUST change nothing.
+
+A `deleted_while_edited` conflict exists exactly when a thing's `present` set has no
+live tags, has at least one retired tag, and something beneath it holds a live tag
+that is not among those retired tags.
+
+**Merging** MUST validate (§5.6) and MUST then refuse, merging nothing, a document
+holding a tag minted under the receiving replica's own id that is either unknown to
+the receiver, or recorded by the receiver as an add to a different set or of a
+different value. Both mean two histories are minting under one id: a restored
+backup, a crash between sending and saving, or a copied replica.
+
+**Forking** gives a replica's document a new id and a counter of 0. Restoring,
+cloning and provisioning a device from an existing replica MUST fork.
+
+**Persisting** a replica MUST keep the document, id and counter together, and loading
+MUST refuse a document holding a tag under the replica's id beyond its counter.
 
 ---
 
@@ -660,7 +776,7 @@ the graph.
 
 ## 9. Conformance
 
-`conformance/` holds **188 language-neutral vectors** covering every section above,
+`conformance/` holds **230 language-neutral vectors** covering every section above,
 in the shape `VoidCore:conformance/reduce/` proved. An implementation is conforming
 iff it reproduces every `out` exactly.
 

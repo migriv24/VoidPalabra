@@ -78,12 +78,41 @@ issues unforgeable tokens granting read or write access to a *region* of data, w
 meaning "anyone may write anything."
 
 Minimum bar before any transport code exists:
-- utterances are **signed** by the peer that authored them;
+- **what travels** is signed by the peer that authored it — which, for state-based
+  sync, means *deltas*, not utterances and not whole documents (a merged document
+  has many authors; see [open questions](/design/open-questions.md) §6.1);
 - a peer's identity is its **public key**, not a name or an address;
 - read and write are **separate, delegable capabilities scoped to a region**;
 - encryption in transit is assumed, not optional.
 
-See [open questions](/design/open-questions.md) §5.
+See [open questions](/design/open-questions.md) §6 — the earlier pointer to §5 here
+was wrong; §5 is metadata growth.
+
+# Setting up a peer is not syncing with one
+
+**Recorded 2026-09-16, from a client that built both.** Before a new device can sync,
+another device *provisions* it: hands over keys, local-only files, a member registry,
+secrets. All of that is **peer-local by this bundle's own rule** — none of it is in
+the versioned slice — and the client kept provisioning and syncing as two separate
+paths so that a routine sync is structurally unable to carry a credential.
+
+That separation is right, and Palabra adopts it rather than folding enrollment into a
+tier:
+
+| | provisioning | reconciliation |
+|---|---|---|
+| how often | once per device | forever |
+| carries | peer-local state, secrets | the versioned slice |
+| needs | a human's approval | a capability |
+| owner | the application | Palabra |
+
+**The one thing provisioning must never hand over is replica identity.** A new device
+set up by copying an existing device's [replica](/concepts/replica.md) bytes shares
+its id, and the two will mint the same tags for different changes. The receiving
+device either starts an empty replica and syncs, or **forks** the one it was given.
+`merge` detects the mistake after the fact (`identity_collision`), and a test
+provisions a device the wrong way to prove it — but the right place to prevent it is
+the provisioning path, which is the application's.
 
 # Status
 

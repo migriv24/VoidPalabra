@@ -12,6 +12,7 @@
  */
 #pragma once
 
+#include <set>
 #include <string>
 #include <vector>
 
@@ -68,6 +69,19 @@ std::string unhexify(const std::string& hex);
 cJSON* orset_to_json(const OrSet& s);
 OrSet orset_from_json(const cJSON* o);
 bool is_orset(const cJSON* n);
+/* Exactly {"a": {tag: lowercase-hex}, "r": [tag, ...]} and nothing else. */
+bool orset_json_well_formed(const cJSON* o);
+
+/* The recursive join over document trees. Returns a new tree the caller owns. */
+cJSON* join_node(const cJSON* a, const cJSON* b);
+
+/* Every LIVE tag (added and not retired) in every OrSet beneath `node`. With
+ * `skip_own_present`, the node's own `present` is left out — which is what a
+ * removal records as "seen", and what conflict detection compares against. */
+void collect_live_tags(const cJSON* node, bool skip_own_present, std::set<std::string>& out);
+
+/* Dead, and something beneath it holds a live tag the removal did not see. */
+bool raced_by_an_edit(const cJSON* node);
 
 /* One register's live value, or the marker that it is conflicted. A register is
  * conflicted exactly when two concurrent writes both survived. */

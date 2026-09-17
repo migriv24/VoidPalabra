@@ -54,6 +54,9 @@ optional and defaults to SPEC §4.4's default.
 | `enrich` | a state document | hex of the §5.2 enriched document's canonical bytes |
 | `join` | `[state_a, state_b]` | hex of the merged document's canonical bytes |
 | `conflicts` | `[state_a, state_b]` | concatenated §5.3 conflict hashes, or `none` |
+| `validate` | an enriched document or delta, as a peer sends it | `valid` or `refused` |
+| `merged_slice` | `[state_a, state_b]` | the version name of the merged, flattened slice |
+| `replica_doc` | `{id, observe: [state, …]}` | hex of the replica document's canonical bytes, or `refused` |
 | `utterance` | an utterance object | its §8.2 name (`u:…`) |
 | `ingest` | a Void Core journal export | the §8.3 cut name (`c:…`) after filtering, or `refused` |
 | `ingest_report` | a Void Core journal export | `"<n> recorded"` plus `"; <reason> <verb>"` per skip |
@@ -95,6 +98,9 @@ regeneration:
 | `empty glyphs map` == `declares nothing` | §4.4 — absent and empty are one state |
 | `source=host` == `source=document` | §4.5 — peer-local resolution is not the type |
 | `with a glyph declaration` != `with peer-local fields` | §4.4 — the line between versioned and peer-local |
+| `a and r merged with a, r and z` == `a, r and z` | §5.6 — an OrSet is recognised by shape, not by member names |
+| `observed twice` == `observed once` | §5.7 — an idle tick mints nothing |
+| `source=document` == `source=host`, replica side | §4.5 applied to observation, not only to names |
 | `seq changed` == baseline | §8.2 — a dispatch counter is not part of a name |
 | `parents reordered` == baseline | §8.2 — parents are a set |
 | `a save appended` == without it | §8.1 — the consumer obligation, as a relation |
@@ -119,6 +125,9 @@ A vector with no relation to any other vector only pins a number.
 | `10-conflicts.json` | §5.3 — conflicts as addressed values |
 | `15-glyph-declarations.json` | §4.4–§4.5 — what a declaration contributes to a name, and what is excluded |
 | `16-glyph-merge.json` | §5.3 — declarations across a merge; redeclaration as a conflict |
+| `17-validation.json` | §5.6 — the door: what a peer's document must look like to be merged |
+| `18-merged-slice.json` | §5.2–§5.4 — what a user sees after a merge; two silent data-loss defects |
+| `19-replica.json` | §5.7 — tag format, how a removal is recorded, and that an idle observation mints nothing |
 
 
 ## The §8 vectors, and why `ingest` reports a cut rather than a count

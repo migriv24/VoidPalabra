@@ -67,7 +67,23 @@ name two schemas, possible since 2026-09-03 — carries `glyph` instead, with
 ```
 
 A declaration belongs to the **document**, not to any mantle, so the mantle key is
-absent rather than empty. An empty string standing in for "not in a mantle" is how
+absent rather than empty.
+
+**A second kind: `deleted_while_edited`** (2026-09-16). A thing removed on one device
+while something beneath it changed on another is not a disagreement between two
+values, and a merge used to hide it completely: the thing was no longer present, so
+it was not shown, so the edit vanished from view on both devices.
+
+```jsonc
+{ "kind": "deleted_while_edited",
+  "at":   { "mantle": "notes", "rune": "rune_7f…", "field": "present" },
+  "sides": [ { "value": "deleted" }, { "value": "kept" } ] }
+```
+
+Reported once at the outermost removed thing, never for something that was simply not
+created here yet, and never settled by a device observing the absence it already
+had. Choosing `kept` brings the thing back with the edit; choosing `deleted` records
+the edit as seen. See [replica](/concepts/replica.md). An empty string standing in for "not in a mantle" is how
 a renderer ends up printing a blank where a name should be — the shape says which
 kind of thing disagreed, and a reader never has to guess from a sentinel.
 

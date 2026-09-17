@@ -1,5 +1,125 @@
 # Bundle Update Log
 
+## 2026-09-16 — a client asked for trust and got a merge that works first
+
+Message received: `MESSAGE_FOR_VOIDPALABRA_hormiga-lan-sharing-ledger-and-trust-2026-09-16.md`.
+Void Hormiga built LAN sharing between an organization's members and asked for six
+things: signed utterances, capabilities, a transport, an ephemeral channel,
+provisioning, and deletions that propagate so sync can run automatically.
+
+Read as a **library** request rather than one application's, and checked against the
+code rather than the prose, it turned into something different from its own ordering:
+the merge path every client already uses had **three silent data-loss defects and
+four ways a peer could break a receiver**, all pre-existing, all found by trying to
+build the sixth item properly. Those came first.
+
+* **Silent data loss, no attacker needed.**
+
+  - **Mantles named `a` and `r` merged to zero mantles.** An OrSet was recognised by
+    having members named `a` and `r`; a user's `mantles` map with mantles of those
+    names looked like one. Every mantle was erased by one ordinary sync. Glyph names
+    had the same exposure. Recognition is now by shape — an OrSet's `r` is an array,
+    a map's children never are.
+  - **Every mantle's `tags` and `rules`, and every rune's `relations`, were lost on
+    every merge.** All three are hashed by the canonical form (§4); none was carried
+    by `enrich`, and `flatten` wrote them back empty. The round-trip test passed the
+    whole time because its fixture used none of them — a round-trip test is exactly
+    as good as the fields its fixture fills in. Carried now, and written only when
+    not their default, so documents that never used them have unchanged bytes.
+  - **Deletions came back.** Not strictly a defect in the library — `join.hpp` said
+    in its first paragraph that removes need per-element metadata — but nothing let
+    a client *keep* that metadata between exchanges, so the first client to sync for
+    real rebuilt it from bare state each time and every deleted rune returned on the
+    next merge. That is the [replica](/concepts/replica.md), below.
+
+* **What a peer could do to a receiver**, each demonstrated before it was fixed, and
+  each with a payload far below any size ceiling — which is the generalization of
+  the client's own `max_bytes` lesson worth keeping:
+
+  - **permanent divergence**: a node of the wrong kind made `join` keep whichever
+    side came first, so two peers joining in opposite orders never converged again;
+  - **a crash**: an OrSet whose `a` was an array built a `std::string` from a null
+    key;
+  - **unbounded allocation**: nine bytes declaring 2⁶³ elements;
+  - **a stack overflow**: nesting two million deep;
+  - **fabricated values**: a truncated sequence decoded to `[true, null, null]`;
+  - **quadratic merge**: map lookups by linear scan — 400 million comparisons to
+    merge two 20,000-rune mantles.
+
+  Fixed in two layers ([SPEC.md](../SPEC.md) §5.6). **The door:** `validate` checks a
+  peer's document or delta whole — shape, kinds, OrSet form, canonical values,
+  duplicate member names — and refuses all-or-nothing. **The second line:** the join
+  now converges on anything that gets past the door, because where two peers disagree
+  about a node's kind the choice is a function of the nodes, which is a join on its
+  own. Convergent, not correct; correctness is the door's job. The decoder bounds
+  every count by the bytes that remain, fails on truncation, and caps nesting at
+  cJSON's own limit, so one knob governs both parsers. `take` in the container reader
+  had an overflowing bounds check too.
+
+* **The replica** — the item that gated the client's automatic sync. One device's
+  enriched document, id and counter, kept between exchanges. `observe` records the
+  difference between the application's state and what the replica shows, removals
+  included; `merge` validates, checks identity, then joins. It shipped with the edge
+  cases a first client does not meet, each a test:
+
+  - **Observing a conflict does not resolve it.** A conflicted field is shown as one
+    value; writing back what was shown is not a decision. Without this, every timer
+    tick would silently resolve every conflict to whatever `flatten` displayed.
+  - **Observing its own output mints nothing** — otherwise idle ticks grow metadata
+    forever and two peers trade phantom changes.
+  - **A delete that raced an edit is a conflict**, `deleted_while_edited`. Without
+    it the edited rune simply vanished from view on both devices. Detectable because a
+    removal records every live tag it saw beneath the removed thing; not reported for
+    a thing that was never present here (deltas arrive out of order), nor settled by
+    observing the absence, nor repeated for every rune in a deleted mantle.
+  - **A restored backup, a crash between send and save, and a copied device** are all
+    caught by `merge` as `identity_collision`, merging nothing. The copied-device case
+    was missed by the first version of the check — a copy mints the same tag *strings*
+    as the original, so asking "do I know this tag?" sees nothing. It now asks what
+    the tag names. A test that provisioned a device by copying replica bytes found it.
+  - **A stale resolution is refused**: resolving a conflict that a later merge
+    changed would overwrite a value nobody saw.
+  - **A declared field join is not collapsed**: observing `max(5, 9)` writes nothing,
+    so a policy stays read-time only.
+
+* **Trust and capabilities: six findings, no code, on purpose**
+  ([open questions](/design/open-questions.md) §6.1). The two that matter most rule
+  out the design the request described. **Sign what travels** — the client's sync
+  ships enriched documents, so signed utterances would have protected nothing, and a
+  merged document has many authors, so authorship needs signed *deltas*. **A
+  capability's region must be decidable from the change alone** — "runes carrying a
+  tag" depends on concurrent state, so two peers admit and refuse the same change and
+  their histories diverge for good; which also answers, concretely, whether a tag can
+  carry authority. The other four: an X25519 profile key cannot sign; Core's journal
+  does not name the mantle a command changed; revocation poisons honest descendants
+  in a partial order; and "admins-first" is right exactly because it is only a
+  presentation.
+
+* **Recorded, not built, because there is no state machine for them yet**
+  ([transport shape](/design/transport-shape.md), [peer and tier](/concepts/peer-and-tier.md)):
+  presence as a separate message *type* that cannot carry a delta, with latest-wins
+  by sender sequence and receiver-side expiry; timeouts as the sans-IO argument
+  arrived at from the other side (a waiting state needs a transition on elapsed time,
+  not a thread with a timeout); and provisioning as a path distinct from
+  reconciliation, which must never hand over a replica's identity.
+
+* **One hazard this library cannot fix and must name.** A host whose document is
+  governed by Void Core's memento undo, and which splices a merge in outside the
+  dispatcher, leaves an undo stack of pre-merge snapshots. An undo then reverts the
+  peer's changes — and the next `observe` records that revert as this device's act and
+  sends it to everyone. Normative in SPEC §5.4; the host must clear or rebase its undo
+  stack when it splices.
+
+* **The blockchain question the client relayed.** Their answer was right and one
+  clause needed tightening: a hash-linked history makes a rewritten past detectable
+  *to a peer that already holds the original*, not absolutely — and the design
+  explicitly permits peers that hold no history at all. Answered in the reply.
+
+* **Where the tree stands:** 12 suites (two new: `replica` 522 checks, `hostile` 45),
+  no leaks across 282,135 allocations, **230 conformance vectors** (from 188: three new
+  files, and the old round-trip gaps pinned), clean under `-Wall -Wextra`, zero
+  dependencies. No `CANON_VERSION` change — no valid input's bytes moved.
+
 ## 2026-09-03 — the versioned slice grew a key, and CANON_VERSION went to 3
 
 Message received: `MESSAGE_FOR_VOIDPALABRA_voidcore-0.2.14-a-new-top-level-key-2026-09-03.md`.

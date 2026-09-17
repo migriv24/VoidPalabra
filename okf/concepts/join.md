@@ -177,6 +177,13 @@ So Palabra merges an **enriched document**, and `enrich`/`flatten` are the seam.
 is the concrete vindication of the roadmap reordering: the container format must store
 this metadata, and it could not have been designed before this phase.
 
+**The metadata only helps if it is kept.** This page said removes need per-element
+metadata; it did not say that metadata has to *survive between exchanges*, and the
+first client to sync for real rebuilt it from bare state before every exchange — so
+every removal was forgotten, and every deleted thing came back on the next merge
+(reported 2026-09-16). The persistent form is the [replica](/concepts/replica.md), and
+`enrich` is now documented as what it always was: a one-shot import.
+
 **Unique tags, not version vectors.** The metadata is one unique tag per add
 (Shapiro's original OR-Set). Version vectors are O(peers) and
 [history graph](/concepts/history-graph.md) rejects them for that reason; tags are
@@ -193,6 +200,26 @@ the structure can break them. That is the whole correctness argument.
 
 **Add-wins is a consequence, not a preference.** A remove can only retire tags it
 *observed*; a concurrent add carries a tag the remover never saw, so it survives.
+
+That covers a concurrent add to the *same set*. It does not cover a concurrent edit
+*beneath* the removed thing — a rune deleted on one device while its content is edited
+on another — because the edit touches a different set, and the rune simply stops being
+shown with the edit inside it. A removal therefore also records every live tag it saw
+beneath itself, which is what lets a delete that raced an edit be reported as a
+conflict instead of vanishing ([replica](/concepts/replica.md)).
+
+**The laws must hold on input that is wrong.** They are proved for well-formed
+documents. Before 2026-09-16, a node of the wrong kind at one path — sent by a buggy or
+hostile peer — made `join` keep whichever side came first, so two peers joining in
+opposite orders diverged permanently and silently. The choice is now a function of the
+two nodes (a fixed ranking between kinds), which is a join on its own, so convergence
+holds for any input; and a document from a peer is validated before it is merged at
+all ([SPEC.md](../../SPEC.md) §5.6).
+
+**And on names users choose.** An OrSet used to be recognised by having members named
+`a` and `r`. A user with two mantles called `a` and `r` produced a `mantles` map that
+looked like one, and the merge returned **zero mantles**. Recognition is now by shape
+(`r` is an array), and the case is a conformance vector.
 
 **What the property test caught.** Document-level idempotence failed while the
 primitive's held: `canon_doc` was encoding the document *as written*, so two

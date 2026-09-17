@@ -59,7 +59,7 @@ into the OKF *explicitly* — because an LLM reading this bundle will not infer 
 
 ## Status
 
-**What is built**, as of 2026-08-27 — five layers, each `status:current` in the
+**What is built**, as of 2026-09-16 — six layers, each `status:current` in the
 bundle with a `resource:` link to the code that backs it:
 
 | layer | what it gives you |
@@ -69,6 +69,7 @@ bundle with a `resource:` link to the code that backs it:
 | [persistence](okf/concepts/persistence.md) ◑ | content-addressed storage — a 400 KB asset with a 4-byte edit costs **9 KB**, not 400 KB |
 | [archive](okf/concepts/archive.md) | save / load / every past version, with atomic file writes — 100 saves + a 400 KB asset: **560 KB**, where `.miga` would take ~54 MB |
 | [utterance](okf/concepts/utterance.md) + [history graph](okf/concepts/history-graph.md) | a Void Core command journal becomes a content-addressed **partial order** — time travel, blame, and a cut name two peers agree on |
+| [replica](okf/concepts/replica.md) | a device's state **kept between syncs**, so a deletion stays deleted, a delete that raced an edit is asked about, and a restored backup or copied device is caught before it reuses a tag |
 
 Everything else in the bundle is
 `status:planned`, per the honesty convention inherited from Void Core (no
@@ -86,7 +87,7 @@ git clone https://github.com/migriv24/VoidPalabra
 cd VoidPalabra
 cmake -S . -B build -G Ninja
 cmake --build build
-ctest --test-dir build      # 10 suites: property tests, leaks, 188 conformance vectors
+ctest --test-dir build      # 12 suites: property tests, leaks, 230 conformance vectors
 ```
 
 `tools/check_okf.py` runs as the ninth suite when a `python` is on PATH and is
@@ -136,13 +137,34 @@ Every value above is reproducible: the cut names in
 `conformance/cases/12-journal-ingest.json` are the same function of the same
 input, which is the point of the vectors existing.
 
+**If you are syncing more than once, use a replica, not `enrich`.** `enrich` builds
+a document from the state you have now, which forgets every removal you ever made —
+so the next merge returns what you deleted. A replica keeps the record:
+
+```cpp
+#include "voidpalabra/replica.hpp"
+
+Replica r;
+Replica::create(random_id, r);                 // or Replica::from_bytes(saved, r)
+Replica::Observed o = r.observe(state);        // what the user did since last time
+save(r.to_bytes());                            // before anything leaves the device
+send(o.delta);
+r.merge(received);                             // validated before it is joined
+splice(state, r.flatten());                    // mantles + glyphs only
+for (const Conflict& c : r.conflicts()) { /* including a delete that raced an edit */ }
+```
+
+Anything received from another device is hostile input: `merge` validates it whole
+before joining, and refuses a document minted under this replica's own id by a
+restored backup or a copied device.
+
 The history is where the *partial* order lives: `heads()` may hold several, and
 that is a normal resting state rather than a problem to be fixed. It buys time
 travel, blame and selective sync — **not** convergence, which is the join's, above,
 and works on a peer that stores no history at all.
 
 **Layout.** `include/voidpalabra/` public headers · `src/` implementation ·
-`tests/` property suites + an allocation-balance check · `conformance/` 188
+`tests/` property suites + an allocation-balance check · `conformance/` 230
 language-neutral vectors any implementation can be checked against
 ([SPEC.md](SPEC.md)) · `vendor/` cJSON, vendored whole as Void Maiz and Void Core do. A consumer that already vendors cJSON should link its own copy; the
 public header only forward-declares it, so the two never conflict.

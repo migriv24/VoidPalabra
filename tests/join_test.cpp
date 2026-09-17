@@ -173,6 +173,22 @@ void test_round_trip_preserves_tags_and_edges() {
     Doc round = flatten(doc_from(text, "P"));
     check(slice_hash(round.root) == slice_hash(original.p),
           "tags or edges were lost in the round trip");
+
+    /* A mantle's own `tags` and `rules`, and a rune's `relations`. All three are in
+     * the canonical form, and none was carried by `enrich` until 2026-09-16 — so
+     * every merge that spliced mantles wrote them back empty. This test existed
+     * and passed throughout, because its fixture had none of them. A round-trip
+     * test is only as good as the fields its fixture bothers to fill in. */
+    const char* full =
+        "{\"mantles\":[{\"id\":\"m1\",\"name\":\"demo\","
+        "\"tags\":{\"urgent\":{\"near\":{\"soon\":0.8}},\"later\":{}},"
+        "\"rules\":[\"when x then y\"],\"runes\":["
+        "{\"spirit\":{\"id\":\"rune_1\",\"name\":\"a\"},\"glyph\":\"text\","
+        "\"relations\":[{\"to\":\"rune_2\"}],\"content\":{\"v\":1}}]}]}";
+    Json with_everything(full);
+    Doc round2 = flatten(doc_from(full, "P"));
+    check(slice_hash(round2.root) == slice_hash(with_everything.p),
+          "mantle tags, mantle rules or rune relations were lost in the round trip");
 }
 
 /* --- what the join actually does ----------------------------------------- */
