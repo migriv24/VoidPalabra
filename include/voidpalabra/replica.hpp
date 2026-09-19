@@ -174,6 +174,12 @@ public:
     /* Value conflicts, and deletes that raced an edit. See conflict.hpp. */
     std::vector<Conflict> conflicts() const;
 
+    /* Rules each device kept that the merge broke — two runes with one name, a
+     * link a concurrent removal or rename broke, a rune whose type was undeclared
+     * elsewhere. See anomaly.hpp. Check after every merge, alongside `conflicts`:
+     * a conflict asks which value, an anomaly asks for an edit. */
+    std::vector<Anomaly> anomalies() const;
+
     /* Settle a conflict by choosing one of its `sides`, recorded as this replica's
      * act. For a value conflict the chosen value is written. For a
      * `deleted_while_edited` conflict the sides are "deleted" and "kept": keeping

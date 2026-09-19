@@ -21,6 +21,7 @@
 #include "voidpalabra/store.hpp"
 #include "voidpalabra/utterance.hpp"
 #include "voidpalabra/replica.hpp"
+#include "voidpalabra/references.hpp"
 #include "voidpalabra/crdt/conflict.hpp"
 
 #include "cJSON.h"
@@ -379,6 +380,46 @@ void body_replica() {
     (void)is_canonical(std::string("\x08\x01\x05\x01k\x02", 6));
 }
 
+/* Anomalies decode every edge and name; references walk every declared field. */
+void body_merge_rules() {
+    Replica a, b;
+    Replica::create("leak-rules-A-000001", a, nullptr);
+    Replica::create("leak-rules-B-000001", b, nullptr);
+    const char* base = "{\"mantles\":[{\"name\":\"m\",\"runes\":[{\"spirit\":{\"id\":\"r1\",\"name\":\"x\"},\"glyph\":\"stat\",\"content\":{}}],"
+                       "\"layout\":{\"edges\":[]}}],\"glyphs\":{\"stat\":{\"glyph\":\"stat\"}}}";
+    const char* sa = "{\"mantles\":[{\"name\":\"m\",\"runes\":[],\"layout\":{\"edges\":[]}}]}";
+    const char* sb = "{\"mantles\":[{\"name\":\"m\",\"runes\":[{\"spirit\":{\"id\":\"r1\",\"name\":\"x\"},\"glyph\":\"stat\",\"content\":{}},"
+                     "{\"spirit\":{\"id\":\"r2\",\"name\":\"x\"},\"glyph\":\"stat\",\"content\":{\"photo\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"}}],"
+                     "\"layout\":{\"edges\":[{\"from\":\"x\",\"to\":{\"mantle\":\"m\",\"rune\":\"x\"}}]}}],"
+                     "\"glyphs\":{\"stat\":{\"glyph\":\"stat\"}}}";
+    cJSON* jb = cJSON_Parse(base);
+    cJSON* ja = cJSON_Parse(sa);
+    cJSON* jbb = cJSON_Parse(sb);
+    {
+        a.observe(jb);
+        b.merge(a.doc(), nullptr);
+        a.observe(ja);
+        b.observe(jbb);
+        a.merge(b.doc(), nullptr);
+        for (const Anomaly& x : a.anomalies()) {
+            cJSON* j = anomaly_to_json(x);
+            cJSON_Delete(j);
+            (void)x.hash();
+        }
+        ReferencePolicy policy;
+        policy.fields["content.*"] = sha256_hex_anywhere();
+        policy.fields["descriptor"] = sha256_hex_anywhere();
+        Doc f = a.flatten();
+        BlockStore store;
+        std::vector<Reference> refs = references(f.root, policy);
+        (void)missing(refs, held_by(store));
+        (void)content_matches("aa", "x");
+    }
+    cJSON_Delete(jb);
+    cJSON_Delete(ja);
+    cJSON_Delete(jbb);
+}
+
 struct Case { const char* name; void (*fn)(); };
 
 const Case kCases[] = {
@@ -396,6 +437,7 @@ const Case kCases[] = {
     {"utterance/history", body_utterance},
     {"glyph declarations", body_glyphs},
     {"replica + validation", body_replica},
+    {"anomalies + references", body_merge_rules},
 };
 
 }  // namespace

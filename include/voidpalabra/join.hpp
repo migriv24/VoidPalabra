@@ -45,6 +45,7 @@
  *   crdt/policy.hpp     declared per-field joins (read-time resolution)
  *   crdt/document.hpp   enrich / join / flatten, and editing
  *   crdt/conflict.hpp   a conflict as an addressed value
+ *   crdt/anomaly.hpp    a rule every device kept that the merge broke
  *   crdt/sequence.hpp   ordered content (Fugue)
  */
 
@@ -52,4 +53,5 @@
 #include "voidpalabra/crdt/policy.hpp"
 #include "voidpalabra/crdt/document.hpp"
 #include "voidpalabra/crdt/conflict.hpp"
+#include "voidpalabra/crdt/anomaly.hpp"
 #include "voidpalabra/crdt/sequence.hpp"

@@ -516,6 +516,10 @@ std::vector<Conflict> Replica::conflicts() const {
     return voidpalabra::conflicts(doc_, policy_);
 }
 
+std::vector<Anomaly> Replica::anomalies() const {
+    return voidpalabra::anomalies(doc_, policy_);
+}
+
 bool Replica::resolve(const Conflict& conflict, std::size_t side, Doc* delta_out) {
     if (side >= conflict.sides.size()) return false;
     const std::string wanted = to_hex(conflict.hash());

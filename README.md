@@ -59,7 +59,7 @@ into the OKF *explicitly* — because an LLM reading this bundle will not infer 
 
 ## Status
 
-**What is built**, as of 2026-09-16 — six layers, each `status:current` in the
+**What is built**, as of 2026-09-18 — seven layers, each `status:current` in the
 bundle with a `resource:` link to the code that backs it:
 
 | layer | what it gives you |
@@ -70,6 +70,7 @@ bundle with a `resource:` link to the code that backs it:
 | [archive](okf/concepts/archive.md) | save / load / every past version, with atomic file writes — 100 saves + a 400 KB asset: **560 KB**, where `.miga` would take ~54 MB |
 | [utterance](okf/concepts/utterance.md) + [history graph](okf/concepts/history-graph.md) | a Void Core command journal becomes a content-addressed **partial order** — time travel, blame, and a cut name two peers agree on |
 | [replica](okf/concepts/replica.md) | a device's state **kept between syncs**, so a deletion stays deleted, a delete that raced an edit is asked about, and a restored backup or copied device is caught before it reuses a tag |
+| [anomaly](okf/concepts/anomaly.md) + [content reference](okf/concepts/content-reference.md) | after a merge: the rules no device broke but the merge did (two runes with one name, a link a concurrent change broke), and the files the document names that this device does not have |
 
 Everything else in the bundle is
 `status:planned`, per the honesty convention inherited from Void Core (no
@@ -87,12 +88,26 @@ git clone https://github.com/migriv24/VoidPalabra
 cd VoidPalabra
 cmake -S . -B build -G Ninja
 cmake --build build
-ctest --test-dir build      # 12 suites: property tests, leaks, 230 conformance vectors
+ctest --test-dir build      # 15 suites: property tests, leaks, embedding, 246 conformance vectors
 ```
 
-`tools/check_okf.py` runs as the ninth suite when a `python` is on PATH and is
-skipped silently otherwise — it checks the documentation's honesty convention,
-not the library, which stays dependency-free.
+`tools/check_okf.py` runs as a suite when a `python` is on PATH and is skipped
+silently otherwise — it checks the documentation's honesty convention, not the
+library, which stays dependency-free.
+
+## Using it from another project
+
+```cmake
+set(VOIDPALABRA_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../VoidPalabra" CACHE PATH "")
+set(VOIDPALABRA_VENDOR_CJSON OFF)   # only if you already link cJSON 1.7.x
+add_subdirectory(${VOIDPALABRA_ROOT} voidpalabra)
+target_link_libraries(your_target PRIVATE voidpalabra::voidpalabra)
+```
+
+That is the whole contract. **Do not copy our source-file list into your build** — it
+changes, and a copied list drifts without an error until something fails to link.
+Embedded, the library builds nothing but itself: no tests of ours join your ctest, and
+two of our own tests embed it in a fresh project to keep that true.
 
 ```cpp
 #include "voidpalabra/canonical.hpp"

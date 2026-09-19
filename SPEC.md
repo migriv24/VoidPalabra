@@ -560,6 +560,69 @@ cloning and provisioning a device from an existing replica MUST fork.
 **Persisting** a replica MUST keep the document, id and counter together, and loading
 MUST refuse a document holding a tag under the replica's id beyond its counter.
 
+### 5.8 Anomalies: rules a merge breaks **[normative]**
+
+A join preserves the join and nothing else. A rule relating two objects can hold on
+every peer and fail on their merge, because each peer's change was valid against the
+state it could see. Such a rule is not enforced; it is **checked after the merge**,
+and a violation is reported as an **anomaly**: a value with a content address, like a
+conflict (§5.3), so every peer holding the same document names the same problem the
+same way.
+
+An anomaly asks for an **edit**, not a choice — there are no sides. An implementation
+MUST NOT resolve one itself: in particular it MUST NOT rename a rune, because a
+rename changes what every command and edge naming it means.
+
+Each kind below states a rule Void Core owns (Palabra does not restate it
+differently), and each is limited to what only a merge can explain, so that this
+section never becomes a second copy of Core's `validate`:
+
+| kind | reported when | Core's rule |
+|---|---|---|
+| `duplicate_name` | two or more live runes in one live mantle show the same non-empty `spirit.name` | a name is unique within its mantle (`VoidCore:SPEC §2`) |
+| `link_broken` | a live edge's endpoint names no live rune, **and** a removed rune in the target mantle showed that name (`cause: "removed"`), or a live rune's name register holds that name as a retired value (`cause: "renamed"`) | an endpoint resolves (`§3.7`); a link to something never written is allowed and MUST NOT be reported |
+| `type_removed` | a live rune's `glyph` names a declaration this document holds as removed (not present, with retired tags) | `glyph undeclare` is refused while runes carry the glyph (`§2`) — a per-peer guard a merge can defeat |
+
+Names are read as `flatten` shows them, under the same policy. Removed things are not
+checked. An endpoint is a name in the edge's own mantle, or `{"mantle", "rune"}`
+naming another; a `link_broken` anomaly is reported on the mantle holding the edge,
+with `subject` the endpoint (`name`, or `mantle/name` when it points elsewhere).
+
+An anomaly renders as `{kind, mantle, subject, cause?, runes}` with `runes` the
+sorted `spirit.id`s involved, and is named by a §3 digest with kind `anomaly`.
+Anomalies MUST be listed in the order (kind, mantle, subject, cause).
+
+### 5.9 References: what a document names and does not hold **[normative]**
+
+The versioned slice holds runes, not the bytes runes point at. A document may name a
+file, a font, a sprite in a declaration's `presentations`, or any other content by
+address; syncing the document syncs the address and never the thing.
+
+Three jobs follow, and this section assigns them:
+
+1. **What is referred to** is a fact about the shared document. Which fields hold
+   addresses is DECLARED by the application, per field, in a reference policy keyed
+   like a join policy (exact name, or a `prefix*` rule, longest match winning). The
+   keys `descriptor` (every glyph declaration), `mantle.tags` and `mantle.rules`
+   reach outside a rune's fields. An implementation MUST NOT read an undeclared field
+   as a reference: a digest-shaped string in someone's content is their data.
+2. **What a device lacks** is a fact about that device. It MUST NOT be merged, MUST
+   NOT be reported as a conflict or anomaly, and MUST NOT be read as a reason to
+   delete anything.
+3. **Fetching** is I/O and is not specified here. Whoever fetches MUST check received
+   bytes against their address before storing them.
+
+**The default finder** treats every run of exactly 64 lowercase hex characters inside
+any string in a declared value, at any depth, as a SHA-256 address. Longer runs and
+uppercase hex are not addresses.
+
+References are listed sorted by (address, mantle, rune, glyph, field). The set of
+content a device must keep is the union of references over **every version it
+keeps**, not only the current one.
+
+Bytes MUST NOT be embedded in the document to avoid this. That makes every version
+carry every file, which is the failure §7's archive exists to remove.
+
 ---
 
 ## 6. Known gaps
@@ -776,7 +839,7 @@ the graph.
 
 ## 9. Conformance
 
-`conformance/` holds **230 language-neutral vectors** covering every section above,
+`conformance/` holds **246 language-neutral vectors** covering every section above,
 in the shape `VoidCore:conformance/reduce/` proved. An implementation is conforming
 iff it reproduces every `out` exactly.
 

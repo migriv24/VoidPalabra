@@ -1,0 +1,140 @@
+{
+	"kind":	"references",
+	"about":	"§5.9 — what a document names but does not hold. Declared fields only, read with the default SHA-256 finder",
+	"cases":	[{
+			"name":	"a picture named inside a path",
+			"in":	{
+				"fields":	["content.photo"],
+				"state":	{
+					"mantles":	[{
+							"name":	"people",
+							"runes":	[{
+									"spirit":	{
+										"id":	"rune_p",
+										"name":	"ada"
+									},
+									"glyph":	"person",
+									"content":	{
+										"photo":	"assets/2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824.png"
+									}
+								}]
+						}]
+				}
+			},
+			"out":	"2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824 people/rune_p//content.photo"
+		}, {
+			"name":	"the same address bare, in a field declared by prefix — must equal (the address is what it is, wherever it sits)",
+			"in":	{
+				"fields":	["content.*"],
+				"state":	{
+					"mantles":	[{
+							"name":	"people",
+							"runes":	[{
+									"spirit":	{
+										"id":	"rune_p",
+										"name":	"ada"
+									},
+									"glyph":	"person",
+									"content":	{
+										"photo":	"2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824"
+									}
+								}]
+						}]
+				}
+			},
+			"out":	"2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824 people/rune_p//content.photo"
+		}, {
+			"name":	"the same in a field nobody declared — none (content means what the application says)",
+			"in":	{
+				"fields":	["content.photo"],
+				"state":	{
+					"mantles":	[{
+							"name":	"people",
+							"runes":	[{
+									"spirit":	{
+										"id":	"rune_p",
+										"name":	"ada"
+									},
+									"glyph":	"person",
+									"content":	{
+										"checksum":	"2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824"
+									}
+								}]
+						}]
+				}
+			},
+			"out":	"none"
+		}, {
+			"name":	"a sixty-five character run, and uppercase hex — none (not addresses)",
+			"in":	{
+				"fields":	["content.*"],
+				"state":	{
+					"mantles":	[{
+							"name":	"m",
+							"runes":	[{
+									"spirit":	{
+										"id":	"r",
+										"name":	"n"
+									},
+									"glyph":	"text",
+									"content":	{
+										"a":	"2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b98240",
+										"b":	"2CF24DBA5FB0A30E26E83B2AC5B9E29E1B161E5C1FA7425E73043362938B9824"
+									}
+								}]
+						}]
+				}
+			},
+			"out":	"none"
+		}, {
+			"name":	"a sprite named by a glyph declaration's presentation",
+			"in":	{
+				"fields":	["descriptor"],
+				"state":	{
+					"mantles":	[],
+					"glyphs":	{
+						"hero":	{
+							"glyph":	"hero",
+							"presentations":	{
+								"canvas":	{
+									"sprite":	"sprites/486ea46224d1bb4fb680f34f7c9ad96a8f24ec88be73ea8e5a6c65260e9cb8a7.png"
+								}
+							}
+						}
+					}
+				}
+			},
+			"out":	"486ea46224d1bb4fb680f34f7c9ad96a8f24ec88be73ea8e5a6c65260e9cb8a7 //hero/descriptor"
+		}, {
+			"name":	"two runes naming one file, and one naming two — sorted, one line each",
+			"in":	{
+				"fields":	["content.*"],
+				"state":	{
+					"mantles":	[{
+							"name":	"m",
+							"runes":	[{
+									"spirit":	{
+										"id":	"r2",
+										"name":	"b"
+									},
+									"glyph":	"text",
+									"content":	{
+										"x":	"486ea46224d1bb4fb680f34f7c9ad96a8f24ec88be73ea8e5a6c65260e9cb8a7"
+									}
+								}, {
+									"spirit":	{
+										"id":	"r1",
+										"name":	"a"
+									},
+									"glyph":	"text",
+									"content":	{
+										"x":	"486ea46224d1bb4fb680f34f7c9ad96a8f24ec88be73ea8e5a6c65260e9cb8a7",
+										"y":	["2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824"]
+									}
+								}]
+						}]
+				}
+			},
+			"out":	"2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824 m/r1//content.y;486ea46224d1bb4fb680f34f7c9ad96a8f24ec88be73ea8e5a6c65260e9cb8a7 m/r1//content.x;486ea46224d1bb4fb680f34f7c9ad96a8f24ec88be73ea8e5a6c65260e9cb8a7 m/r2//content.x"
+		}]
+}

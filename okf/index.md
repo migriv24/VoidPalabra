@@ -9,14 +9,16 @@ Void Core — how state is **remembered** (history), **named** (versions),
 **merged** (convergence), **stored** (persistence), and **spoken** between
 devices (sync). A library, not an application.
 
-This is the **dev** bundle. **Eight concepts are built** — [canonical
+This is the **dev** bundle. **Ten concepts are built** — [canonical
 form](/concepts/canonical-form.md), [join](/concepts/join.md),
 [persistence](/concepts/persistence.md) and [archive](/concepts/archive.md) as of
 2026-07-27, then [utterance](/concepts/utterance.md), [history
 graph](/concepts/history-graph.md) and [version as cut](/concepts/version-as-cut.md)
 on 2026-08-27, once Void Core reified commands and closed the pure/effectful
 question, then [replica](/concepts/replica.md) on 2026-09-16, when a client's
-automatic sync needed deletions to stay deleted. The first four name **state**; the
+automatic sync needed deletions to stay deleted, and [anomaly](/concepts/anomaly.md)
+and [content reference](/concepts/content-reference.md) on 2026-09-18 — what a merge
+breaks that no device broke, and what a document names that it does not hold. The first four name **state**; the
 next three name **change**; the replica is what keeps a device's state between
 exchanges.
 
@@ -82,6 +84,8 @@ meet at two data shapes and nothing else.
 * [Persistence](/concepts/persistence.md) - mantles/runes/holidays onto a real filesystem; formats, codecs, mobile
 * [Archive](/concepts/archive.md) - save, load and local version tracking; the surface an application actually calls
 * [Replica](/concepts/replica.md) - one device's state kept between exchanges, so removals propagate and a sync loop is correct rather than merely frequent
+* [Anomaly](/concepts/anomaly.md) - a rule every device kept that a merge broke — duplicate names, broken links, a type removed under its runes
+* [Content reference](/concepts/content-reference.md) - what a document names but does not hold; who says what is missing, who fetches, who checks
 * [Compute](/concepts/compute.md) - naming, routing and recording compute across peers; prompts as addressable projections
 
 # Design — the rationale

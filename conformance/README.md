@@ -55,6 +55,8 @@ optional and defaults to SPEC §4.4's default.
 | `join` | `[state_a, state_b]` | hex of the merged document's canonical bytes |
 | `conflicts` | `[state_a, state_b]` | concatenated §5.3 conflict hashes, or `none` |
 | `validate` | an enriched document or delta, as a peer sends it | `valid` or `refused` |
+| `merge_anomalies` | `{base, a, b}` — A observes base, B takes it, A goes to `a` while B goes to `b`, they exchange | the anomaly hashes (both replicas must agree), or `none` |
+| `references` | `{fields, state}` | `address mantle/rune/glyph/field` per reference, `;`-joined, or `none` |
 | `merged_slice` | `[state_a, state_b]` | the version name of the merged, flattened slice |
 | `replica_doc` | `{id, observe: [state, …]}` | hex of the replica document's canonical bytes, or `refused` |
 | `utterance` | an utterance object | its §8.2 name (`u:…`) |
@@ -128,6 +130,8 @@ A vector with no relation to any other vector only pins a number.
 | `17-validation.json` | §5.6 — the door: what a peer's document must look like to be merged |
 | `18-merged-slice.json` | §5.2–§5.4 — what a user sees after a merge; two silent data-loss defects |
 | `19-replica.json` | §5.7 — tag format, how a removal is recorded, and that an idle observation mints nothing |
+| `20-merge-anomalies.json` | §5.8 — rules each device kept that the merge broke |
+| `21-references.json` | §5.9 — what a document names but does not hold |
 
 
 ## The §8 vectors, and why `ingest` reports a cut rather than a count

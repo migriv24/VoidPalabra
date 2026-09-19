@@ -24,6 +24,7 @@
 #include "voidpalabra/join.hpp"
 #include "voidpalabra/utterance.hpp"
 #include "voidpalabra/replica.hpp"
+#include "voidpalabra/references.hpp"
 
 #include "cJSON.h"
 
@@ -158,6 +159,49 @@ bool evaluate(const std::string& kind, const cJSON* c, std::string& out,
                 if (!o.ok) { out = "refused"; return true; }
             }
             out = to_hex_bytes(canon_doc(r.doc()));
+            return true;
+        }
+        if (kind == "merge_anomalies") {
+            /* `in` is {"base", "a", "b"}: replica A observes base; B takes it; A then
+             * observes `a` while B observes `b`; they exchange. `out` is the
+             * concatenated anomaly hashes on A, or "none". The ids are fixed so the
+             * vector is reproducible, and both sides are checked to agree, because an
+             * anomaly that two peers name differently is not a shared fact. */
+            const cJSON* base = cJSON_GetObjectItemCaseSensitive(const_cast<cJSON*>(input), "base");
+            const cJSON* sa = cJSON_GetObjectItemCaseSensitive(const_cast<cJSON*>(input), "a");
+            const cJSON* sb = cJSON_GetObjectItemCaseSensitive(const_cast<cJSON*>(input), "b");
+            if (!base || !sa || !sb) { why = "merge_anomalies needs {base, a, b}"; return false; }
+            Replica ra, rb;
+            Replica::create("vector-merge-A-000001", ra);
+            Replica::create("vector-merge-B-000001", rb);
+            if (!ra.observe(base).ok) { out = "refused"; return true; }
+            rb.merge(ra.doc());
+            if (!ra.observe(sa).ok || !rb.observe(sb).ok) { out = "refused"; return true; }
+            ra.merge(rb.doc());
+            rb.merge(ra.doc());
+            std::string acc, other;
+            for (const Anomaly& x : ra.anomalies()) acc += to_hex(x.hash());
+            for (const Anomaly& x : rb.anomalies()) other += to_hex(x.hash());
+            if (acc != other) { why = "the two replicas disagree about the anomalies"; return false; }
+            out = acc.empty() ? "none" : acc;
+            return true;
+        }
+        if (kind == "references") {
+            /* `in` is {"fields": [declared field keys], "state": ...}, every declared
+             * field read with the default SHA-256 finder. `out` is each reference as
+             * "address mantle/rune/glyph/field", joined by ";", or "none". */
+            const cJSON* fields = cJSON_GetObjectItemCaseSensitive(const_cast<cJSON*>(input), "fields");
+            const cJSON* state = cJSON_GetObjectItemCaseSensitive(const_cast<cJSON*>(input), "state");
+            if (!fields || !state) { why = "references needs {fields, state}"; return false; }
+            ReferencePolicy policy;
+            for (const cJSON* f = fields->child; f; f = f->next)
+                if (cJSON_IsString(f)) policy.fields[f->valuestring] = sha256_hex_anywhere();
+            std::string acc;
+            for (const Reference& r : references(state, policy)) {
+                if (!acc.empty()) acc += ";";
+                acc += r.address + " " + r.mantle + "/" + r.rune + "/" + r.glyph + "/" + r.field;
+            }
+            out = acc.empty() ? "none" : acc;
             return true;
         }
         if (kind == "utterance") {
@@ -354,6 +398,8 @@ int main(int argc, char** argv) {
         "conformance/cases/17-validation.json",
         "conformance/cases/18-merged-slice.json",
         "conformance/cases/19-replica.json",
+        "conformance/cases/20-merge-anomalies.json",
+        "conformance/cases/21-references.json",
     };
 
     std::printf("Void Palabra conformance — SPEC.md v%d%s\n\n", kCanonVersion,

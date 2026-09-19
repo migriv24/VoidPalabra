@@ -1,0 +1,348 @@
+{
+	"kind":	"merge_anomalies",
+	"about":	"§5.8 — rules each device kept that the merge broke. A starts from `base`; B takes it; A changes to `a` while B changes to `b`; they exchange",
+	"cases":	[{
+			"name":	"two devices, two different names",
+			"in":	{
+				"base":	{
+					"mantles":	[{
+							"name":	"notes",
+							"runes":	[]
+						}]
+				},
+				"a":	{
+					"mantles":	[{
+							"name":	"notes",
+							"runes":	[{
+									"spirit":	{
+										"id":	"rune_a1",
+										"name":	"note-1"
+									},
+									"glyph":	"text",
+									"content":	{
+									}
+								}]
+						}]
+				},
+				"b":	{
+					"mantles":	[{
+							"name":	"notes",
+							"runes":	[{
+									"spirit":	{
+										"id":	"rune_b1",
+										"name":	"note-2"
+									},
+									"glyph":	"text",
+									"content":	{
+									}
+								}]
+						}]
+				}
+			},
+			"out":	"none"
+		}, {
+			"name":	"two devices, one name each, the same name",
+			"in":	{
+				"base":	{
+					"mantles":	[{
+							"name":	"notes",
+							"runes":	[]
+						}]
+				},
+				"a":	{
+					"mantles":	[{
+							"name":	"notes",
+							"runes":	[{
+									"spirit":	{
+										"id":	"rune_a1",
+										"name":	"note-1"
+									},
+									"glyph":	"text",
+									"content":	{
+									}
+								}]
+						}]
+				},
+				"b":	{
+					"mantles":	[{
+							"name":	"notes",
+							"runes":	[{
+									"spirit":	{
+										"id":	"rune_b1",
+										"name":	"note-1"
+									},
+									"glyph":	"text",
+									"content":	{
+									}
+								}]
+						}]
+				}
+			},
+			"out":	"108bc31de7f590bd03cdb4023bb1e2e636536e72470b12d836ffc2e73d98aa49"
+		}, {
+			"name":	"the same, with the runes minted in the other order — must equal (one problem, one name)",
+			"in":	{
+				"base":	{
+					"mantles":	[{
+							"name":	"notes",
+							"runes":	[]
+						}]
+				},
+				"a":	{
+					"mantles":	[{
+							"name":	"notes",
+							"runes":	[{
+									"spirit":	{
+										"id":	"rune_b1",
+										"name":	"note-1"
+									},
+									"glyph":	"text",
+									"content":	{
+									}
+								}]
+						}]
+				},
+				"b":	{
+					"mantles":	[{
+							"name":	"notes",
+							"runes":	[{
+									"spirit":	{
+										"id":	"rune_a1",
+										"name":	"note-1"
+									},
+									"glyph":	"text",
+									"content":	{
+									}
+								}]
+						}]
+				}
+			},
+			"out":	"108bc31de7f590bd03cdb4023bb1e2e636536e72470b12d836ffc2e73d98aa49"
+		}, {
+			"name":	"a link drawn to a rune removed on the other device",
+			"in":	{
+				"base":	{
+					"mantles":	[{
+							"name":	"paper",
+							"runes":	[{
+									"spirit":	{
+										"id":	"rune_1",
+										"name":	"intro"
+									},
+									"glyph":	"text",
+									"content":	{
+									}
+								}, {
+									"spirit":	{
+										"id":	"rune_2",
+										"name":	"methods"
+									},
+									"glyph":	"text",
+									"content":	{
+									}
+								}]
+						}]
+				},
+				"a":	{
+					"mantles":	[{
+							"name":	"paper",
+							"runes":	[{
+									"spirit":	{
+										"id":	"rune_2",
+										"name":	"methods"
+									},
+									"glyph":	"text",
+									"content":	{
+									}
+								}]
+						}]
+				},
+				"b":	{
+					"mantles":	[{
+							"name":	"paper",
+							"runes":	[{
+									"spirit":	{
+										"id":	"rune_1",
+										"name":	"intro"
+									},
+									"glyph":	"text",
+									"content":	{
+									}
+								}, {
+									"spirit":	{
+										"id":	"rune_2",
+										"name":	"methods"
+									},
+									"glyph":	"text",
+									"content":	{
+									}
+								}],
+							"layout":	{
+								"edges":	[{
+										"from":	"methods",
+										"to":	"intro"
+									}]
+							}
+						}]
+				}
+			},
+			"out":	"1bd1d03ab7c2a953de337b9418cd228676218950c020dc505fa33ea2c9f3fc8a"
+		}, {
+			"name":	"a link drawn to a rune renamed on the other device — must DIFFER (the cause is part of the name)",
+			"in":	{
+				"base":	{
+					"mantles":	[{
+							"name":	"paper",
+							"runes":	[{
+									"spirit":	{
+										"id":	"rune_1",
+										"name":	"intro"
+									},
+									"glyph":	"text",
+									"content":	{
+									}
+								}, {
+									"spirit":	{
+										"id":	"rune_2",
+										"name":	"methods"
+									},
+									"glyph":	"text",
+									"content":	{
+									}
+								}]
+						}]
+				},
+				"a":	{
+					"mantles":	[{
+							"name":	"paper",
+							"runes":	[{
+									"spirit":	{
+										"id":	"rune_1",
+										"name":	"overview"
+									},
+									"glyph":	"text",
+									"content":	{
+									}
+								}, {
+									"spirit":	{
+										"id":	"rune_2",
+										"name":	"methods"
+									},
+									"glyph":	"text",
+									"content":	{
+									}
+								}]
+						}]
+				},
+				"b":	{
+					"mantles":	[{
+							"name":	"paper",
+							"runes":	[{
+									"spirit":	{
+										"id":	"rune_1",
+										"name":	"intro"
+									},
+									"glyph":	"text",
+									"content":	{
+									}
+								}, {
+									"spirit":	{
+										"id":	"rune_2",
+										"name":	"methods"
+									},
+									"glyph":	"text",
+									"content":	{
+									}
+								}],
+							"layout":	{
+								"edges":	[{
+										"from":	"methods",
+										"to":	"intro"
+									}]
+							}
+						}]
+				}
+			},
+			"out":	"1b0580e5db1ee1990cbc1b6b58817f20946253e957d7d4cc65e07ca5a17d85dc"
+		}, {
+			"name":	"a link to something never written — none (Core allows it on purpose)",
+			"in":	{
+				"base":	{
+					"mantles":	[{
+							"name":	"paper",
+							"runes":	[]
+						}]
+				},
+				"a":	{
+					"mantles":	[{
+							"name":	"paper",
+							"runes":	[{
+									"spirit":	{
+										"id":	"rune_1",
+										"name":	"intro"
+									},
+									"glyph":	"text",
+									"content":	{
+									}
+								}],
+							"layout":	{
+								"edges":	[{
+										"from":	"intro",
+										"to":	"future-work"
+									}]
+							}
+						}]
+				},
+				"b":	{
+					"mantles":	[{
+							"name":	"paper",
+							"runes":	[]
+						}]
+				}
+			},
+			"out":	"none"
+		}, {
+			"name":	"a type undeclared on one device while the other starts using it",
+			"in":	{
+				"base":	{
+					"mantles":	[{
+							"name":	"game",
+							"runes":	[]
+						}],
+					"glyphs":	{
+						"stat":	{
+							"glyph":	"stat",
+							"kind":	"measure"
+						}
+					}
+				},
+				"a":	{
+					"mantles":	[{
+							"name":	"game",
+							"runes":	[]
+						}]
+				},
+				"b":	{
+					"mantles":	[{
+							"name":	"game",
+							"runes":	[{
+									"spirit":	{
+										"id":	"rune_s",
+										"name":	"speed"
+									},
+									"glyph":	"stat",
+									"content":	{
+									}
+								}]
+						}],
+					"glyphs":	{
+						"stat":	{
+							"glyph":	"stat",
+							"kind":	"measure"
+						}
+					}
+				}
+			},
+			"out":	"56765db69103a0ee0ee9f968657fd0ae580cb5a5bf14740517cb720647cf2e9a"
+		}]
+}

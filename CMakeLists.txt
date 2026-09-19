@@ -5,14 +5,42 @@ cmake_minimum_required(VERSION 3.20)
 # no stable API promise.
 project(voidpalabra VERSION 0.1.0 LANGUAGES CXX C) # C for the vendored cJSON
 
+# ── Consumed two ways, and both must work ───────────────────────────────────
+#
+# Top level: this repo's own build — the library, every test suite, conformance.
+#
+# Embedded: another project writes `add_subdirectory(${VOIDPALABRA_ROOT} ...)` and
+# links the `voidpalabra` target. It gets the library and NOTHING else. Before
+# 2026-09-18 an embedding project built all thirteen of our test programs and
+# inherited all twelve of our tests into its own ctest — two of which failed there,
+# because they located files relative to the CONSUMER's source directory. A
+# library whose adoption turns the adopter's CI red has not been adopted.
+#
+# The other way siblings have consumed each other — copying a list of source files
+# into their own CMakeLists — is the one this section exists to retire. It drifts
+# silently: Void Maiz's list of Void Core sources went months without the journal,
+# and a consumer of this library had to be told by message to add two new files.
+# A target moves with the library; a file list does not.
+if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
+  set(VOIDPALABRA_TOP_LEVEL ON)
+else()
+  set(VOIDPALABRA_TOP_LEVEL OFF)
+endif()
+
+option(VOIDPALABRA_BUILD_TESTS
+       "Build Void Palabra's tests and conformance runner" ${VOIDPALABRA_TOP_LEVEL})
+
+# One cJSON per process. Void Core, Void Maiz and this library each vendor the same
+# cJSON, and an application that links all three statically holds three copies of
+# every cJSON symbol. OFF compiles against our cJSON.h (1.7.x — the ABI all three
+# share) but leaves the implementation to whatever the consumer already links.
+option(VOIDPALABRA_VENDOR_CJSON "Compile the vendored cJSON implementation" ON)
+
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/bin)
 
 # Void Palabra — the system layer for Void Core. A library, not an application.
-#
-# BUILT SO FAR: Rung 0 only, the canonical form. Everything else in okf/ is
-# status:planned; see okf/roadmap.md.
 #
 # Zero dependencies, and that is a design constraint rather than an accident:
 # okf/concepts/peer-and-tier.md makes an ESP32 a full peer, so every line here
@@ -28,6 +56,7 @@ add_library(voidpalabra STATIC
   src/encoding/decode.cpp
   src/encoding/sha256.cpp
   src/canonical/bindings.cpp
+  src/canonical/references.cpp
   src/crdt/orset.cpp
   src/crdt/policy.cpp
   src/crdt/document.cpp
@@ -35,6 +64,7 @@ add_library(voidpalabra STATIC
   src/crdt/sequence.cpp
   src/crdt/validate.cpp
   src/crdt/replica.cpp
+  src/crdt/anomaly.cpp
   src/store/chunk.cpp
   src/store/blocks.cpp
   src/store/container.cpp
@@ -43,8 +73,14 @@ add_library(voidpalabra STATIC
   src/utterance/history.cpp
   src/archive/archive.cpp
   src/archive/miga.cpp
-  vendor/cJSON.c
 )
+if(VOIDPALABRA_VENDOR_CJSON)
+  target_sources(voidpalabra PRIVATE vendor/cJSON.c)
+endif()
+add_library(voidpalabra::voidpalabra ALIAS voidpalabra)
+# The standard travels with the target, not with a directory variable an embedding
+# project never sees.
+target_compile_features(voidpalabra PUBLIC cxx_std_20)
 target_include_directories(voidpalabra PRIVATE src src/encoding src/crdt src/store src/utterance)
 target_include_directories(voidpalabra
   PUBLIC  include
@@ -59,6 +95,10 @@ endif()
 # A consumer that already vendors cJSON (Maiz does) should link its own copy and
 # drop ours; see README.md. Nothing in the public header mentions cJSON beyond a
 # forward declaration, so the two never conflict at the interface.
+
+if(NOT VOIDPALABRA_BUILD_TESTS)
+  return()
+endif()
 
 enable_testing()
 add_executable(voidpalabra_test tests/canonical_test.cpp)
@@ -125,6 +165,14 @@ if(NOT MSVC)
 endif()
 add_test(NAME hostile COMMAND voidpalabra_hostile_test)
 
+add_executable(voidpalabra_merge_rules_test tests/merge_rules_test.cpp)
+target_include_directories(voidpalabra_merge_rules_test PRIVATE vendor)
+target_link_libraries(voidpalabra_merge_rules_test PRIVATE voidpalabra)
+if(NOT MSVC)
+  target_compile_options(voidpalabra_merge_rules_test PRIVATE -Wall -Wextra)
+endif()
+add_test(NAME merge_rules COMMAND voidpalabra_merge_rules_test)
+
 add_executable(voidpalabra_utterance_test tests/utterance_test.cpp)
 target_include_directories(voidpalabra_utterance_test PRIVATE vendor)
 target_link_libraries(voidpalabra_utterance_test PRIVATE voidpalabra)
@@ -153,7 +201,7 @@ if(NOT MSVC)
   target_compile_options(voidpalabra_conformance PRIVATE -Wall -Wextra)
 endif()
 add_test(NAME conformance COMMAND voidpalabra_conformance
-         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 
 # The regenerator for conformance/cases/14-linear-extension.json, whose utterances
 # name each other by hash and therefore cannot be hand-written or `--regen`ed.
@@ -167,6 +215,23 @@ add_executable(gen_linear_vectors EXCLUDE_FROM_ALL tools/gen_linear_vectors.cpp)
 target_include_directories(gen_linear_vectors PRIVATE vendor)
 target_link_libraries(gen_linear_vectors PRIVATE voidpalabra)
 
+# Embedding, checked rather than assumed: a fresh project pulls this repo in with
+# add_subdirectory, once with our cJSON and once bringing its own, and must build,
+# link, hold only its own test, and pass it. It is slow (it builds the library
+# twice more), and it is here because the property it checks broke without anyone
+# noticing — see the top of this file.
+add_test(NAME embed_vendored
+         COMMAND ${CMAKE_COMMAND} -DPALABRA_SOURCE=${CMAKE_CURRENT_SOURCE_DIR}
+                 -DWORK=${CMAKE_CURRENT_BINARY_DIR} -DVENDOR=ON
+                 -DGENERATOR=${CMAKE_GENERATOR}
+                 -P ${CMAKE_CURRENT_SOURCE_DIR}/tests/embed/run.cmake)
+add_test(NAME embed_host_cjson
+         COMMAND ${CMAKE_COMMAND} -DPALABRA_SOURCE=${CMAKE_CURRENT_SOURCE_DIR}
+                 -DWORK=${CMAKE_CURRENT_BINARY_DIR} -DVENDOR=OFF
+                 -DGENERATOR=${CMAKE_GENERATOR}
+                 -P ${CMAKE_CURRENT_SOURCE_DIR}/tests/embed/run.cmake)
+set_tests_properties(embed_vendored embed_host_cjson PROPERTIES TIMEOUT 600)
+
 # The OKF honesty convention, made enforceable. A 2026-08-21 refactor moved every
 # source file and left all four `resource:` links dangling while the bundle still
 # claimed `status:current` - the convention is only a guarantee if something checks
@@ -174,6 +239,6 @@ target_link_libraries(gen_linear_vectors PRIVATE voidpalabra)
 # library itself stays zero-dependency.
 find_program(PALABRA_PYTHON NAMES python python3)
 if(PALABRA_PYTHON)
-  add_test(NAME okf COMMAND ${PALABRA_PYTHON} ${CMAKE_SOURCE_DIR}/tools/check_okf.py
-           WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+  add_test(NAME okf COMMAND ${PALABRA_PYTHON} ${CMAKE_CURRENT_SOURCE_DIR}/tools/check_okf.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 endif()

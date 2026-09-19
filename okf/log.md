@@ -1,5 +1,88 @@
 # Bundle Update Log
 
+## 2026-09-18 — three questions, answered as three classes
+
+Message received: `MESSAGE_FOR_VOIDPALABRA_hormiga-networking-belongs-in-maiz-2026-09-19.md`.
+A heads-up that networking may become an optional Void Maiz module with this library as
+its required dependency, and two questions from two machines testing a shared
+database: two members each minted `note-1`; a picture added after joining never
+arrived.
+
+Each was answered as the class it belongs to rather than as the case asked, so that
+one mechanism settles the question and the ones beside it. That is the useful thing to
+record, because the specific answers would have left every sibling case standing.
+
+* **"Two members minted one name" is one instance of: a merge can break a rule no
+  device broke.** A join preserves the join; a rule spanning two objects can hold on
+  every device and fail on the merge. So the rule is CHECKED after the merge and a
+  violation is an [anomaly](/concepts/anomaly.md) — a value with a content address,
+  like a conflict, the same on every peer. One mechanism, and it answers:
+
+  - two runes with one name (`duplicate_name`) — the question asked;
+  - every command and every edge naming that name, which are ambiguous from the same
+    moment — the same anomaly, since edges address runes by name;
+  - a link drawn to a rune deleted on another device (`link_broken`, `removed`);
+  - a link drawn to a name renamed away on another device (`link_broken`, `renamed`);
+  - a type undeclared on one device while another starts using it (`type_removed`) —
+    which is the case Void Core raised with us on 2026-09-03 and we had left to
+    Core's `validate`;
+  - two mantles created independently with one name — already reported, as a value
+    conflict on `id`, because mantles are keyed by name.
+
+  Two limits keep it from becoming a second copy of Core's `validate`: only what a
+  merge can explain is reported (a link dangling on purpose, which Core allows, is
+  not), and nothing is ever resolved here — above all, Palabra never renames.
+
+  The asker's instinct — an id "parameterized" by its creator — was declined for a
+  reason worth keeping: the collision is in the NAME, which is for humans. Core's
+  random `spirit.id` is load-bearing in two places already, and identity that carries
+  meaning is what makes merges hard. Prevent collisions where names are minted,
+  detect what prevention misses.
+
+* **"A picture never arrived" is one instance of: a document can name things it does
+  not hold.** [Content reference](/concepts/content-reference.md) splits it into three
+  jobs with three owners — what is referred to (the shared document; Palabra), what
+  this device lacks (one device; never merged, never a conflict, never a deletion), and
+  fetching (I/O; whoever owns the network). Plus one obligation Palabra keeps: check
+  bytes against their address before storing them. It answers the picture, and with
+  the same mechanism: fonts, a sprite a glyph declaration's `presentations` names,
+  weights a compute run names by hash, which placeholder is waiting on which file, and
+  when a replaced file may finally be deleted (when no KEPT version names it — time
+  travel needs old versions' files).
+
+  Which fields hold addresses is declared by the application in a `ReferencePolicy`,
+  keyed like a `JoinPolicy`, because content means what the application says. The
+  default finder reads any SHA-256 inside a string, so `assets/<hash>.png` works with
+  one line of declaration.
+
+* **"Networking moves into a view library" is one instance of: this library now has
+  consumers that are libraries.** Checked rather than assumed, and it was broken: a
+  project embedding Palabra with `add_subdirectory` built thirteen of our test programs
+  and inherited twelve of our tests into its own ctest — **two of which failed there**,
+  because they located files relative to the consumer's source directory. A library
+  whose adoption turns the adopter's CI red has not been adopted.
+
+  Fixed so that it answers the neighbouring questions too: embedded, the library builds
+  itself and nothing else; `voidpalabra::voidpalabra` is the contract, so no consumer
+  ever copies our source-file list again (Void Maiz's copied list of Void Core's
+  sources went months without the journal; Void Hormiga had to be told by message to
+  add two of ours); `VOIDPALABRA_VENDOR_CJSON=OFF` lets a process that already links
+  cJSON hold one copy instead of three; the C++ standard travels with the target. Two
+  new tests embed the library in a fresh project — once vendored, once bringing its own
+  cJSON — and the vendored one was confirmed to FAIL against the previous
+  CMakeLists.txt before it was trusted.
+
+* **What the networking module is, in this bundle's terms**: the right-hand column of
+  [transport shape](/design/transport-shape.md). The trust blocker moves with it —
+  recorded in [integration](/design/integration.md) §6, because a transport in a shared
+  library is the same exposure as one in an application, multiplied by every
+  application that links it.
+
+* **Where the tree stands:** 15 suites (new: `merge_rules` 107 checks,
+  `embed_vendored`, `embed_host_cjson`), no leaks across 318,570 allocations, **246
+  conformance vectors** (from 230: `20-merge-anomalies.json`, `21-references.json`),
+  clean under `-Wall -Wextra`. No `CANON_VERSION` change.
+
 ## 2026-09-16 — a client asked for trust and got a merge that works first
 
 Message received: `MESSAGE_FOR_VOIDPALABRA_hormiga-lan-sharing-ledger-and-trust-2026-09-16.md`.

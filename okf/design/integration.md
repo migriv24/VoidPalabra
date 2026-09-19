@@ -39,7 +39,7 @@ protocol. Nothing in that list requires the application to adopt a new model.
 
 ---
 
-# 2. The three hooks
+# 2. The hooks
 
 ## 2.1 The `JoinPolicy` — a glyph declaration, not a Palabra one
 
@@ -93,6 +93,19 @@ have an antfarm"* is not a problem to solve — it is a difference that never
 reaches this library.
 
 ---
+
+## 2.4 The reference hook — which fields name bytes the document does not hold
+
+**Added 2026-09-18.** The same shape as the join policy, one question over: a
+`ReferencePolicy` declares, per field, where a rune's content names a file by address,
+so Palabra can say what a document refers to and what a device lacks
+([content reference](/concepts/content-reference.md)). Declared by the application for
+the reason the join policy is: content means what the application says it means, and
+nobody else may guess.
+
+Like the other hooks, it is a natural candidate to move into a glyph declaration one
+day — a field whose schema says "this is a picture" is a field whose schema says "this
+is a reference". That is Void Core's call to make, not this library's.
 
 # 3. On "universal holiday concepts" — what is and is not sound
 
@@ -206,3 +219,35 @@ supply its own. Extracting it to an interface is the next structural move, and
 doing when a second implementation actually exists — Hormiga's SQLite is the
 obvious candidate — and not before, since an interface with one implementation is
 a guess about the second.
+
+# 6. Two consumer shapes — an application, and a library
+
+**Recorded 2026-09-18**, when the proposal arrived to make networking an optional
+**Void Maiz** module with this library as its required dependency. Until then every
+consumer was an application. A view library consuming Palabra changes three things,
+and all three are about packaging rather than about the algebra.
+
+**Consume the target, never a file list.** Siblings in this family have consumed each
+other by copying lists of source files into their own CMake. That drifts silently: Void
+Maiz's list of Void Core's sources went months without the command journal, and a
+consumer of this library had to be told by message to add two files. The contract is
+now `add_subdirectory(${VOIDPALABRA_ROOT} …)` and `voidpalabra::voidpalabra`. New source
+files never reach a consumer's build.
+
+**Embedding must leave the host's build as it was.** Before this, an embedding project
+built thirteen test programs of ours and inherited twelve tests into its own ctest — two
+of which failed there. Tests are now built only when this repo is the top-level project,
+and two tests embed the library in a fresh project to keep it that way.
+
+**One cJSON per process.** Void Core, Void Maiz and this library each vendor the same
+cJSON. `VOIDPALABRA_VENDOR_CJSON=OFF` compiles against our header and leaves the
+implementation to what the host already links, and a test proves it links.
+
+**What the networking module is, in this bundle's terms**: the right-hand column of
+[transport shape](/design/transport-shape.md) — sockets, discovery, framing, timeouts, the
+fetching of [content references](/concepts/content-reference.md). This library stays the
+left-hand column: what to send, what a received document may contain, what is missing.
+Neither imports the other's concerns. The trust blocker (open questions §6) moves with
+the transport, not with the algebra: a networking module in a shared library is the same
+exposure a stand-in transport in one application was, multiplied by every application that
+links it.
