@@ -57,6 +57,7 @@ optional and defaults to SPEC §4.4's default.
 | `validate` | an enriched document or delta, as a peer sends it | `valid` or `refused` |
 | `merge_anomalies` | `{base, a, b}` — A observes base, B takes it, A goes to `a` while B goes to `b`, they exchange | the anomaly hashes (both replicas must agree), or `none` |
 | `references` | `{fields, state}` | `address mantle/rune/glyph/field` per reference, `;`-joined, or `none` |
+| `frame` | a message as JSON, or `{hex}` | hex of the frame; or `valid` / `refused` |
 | `merged_slice` | `[state_a, state_b]` | the version name of the merged, flattened slice |
 | `replica_doc` | `{id, observe: [state, …]}` | hex of the replica document's canonical bytes, or `refused` |
 | `utterance` | an utterance object | its §8.2 name (`u:…`) |
@@ -84,6 +85,11 @@ So case **names** carry assertions the runner enforces against the preceding cas
 
 - `"… — must equal …"` — the two cases MUST produce identical output.
 - `"… — must DIFFER"` — they MUST NOT.
+
+A name that states its own outcome — `… — refused`, `… — valid`, `… — none` —
+is held to it too. That rule was added after a case named *"a well-formed hello —
+valid"* was regenerated to `refused`: its hand-written bytes were one short, the
+implementation was right, and `--regen` recorded the wrong expectation silently.
 
 These encode the SPEC's actual invariants as relations, which survive any
 regeneration:
@@ -132,6 +138,7 @@ A vector with no relation to any other vector only pins a number.
 | `19-replica.json` | §5.7 — tag format, how a removal is recorded, and that an idle observation mints nothing |
 | `20-merge-anomalies.json` | §5.8 — rules each device kept that the merge broke |
 | `21-references.json` | §5.9 — what a document names but does not hold |
+| `22-frames.json` | §11 — the sync frame: what is written, and what must be refused |
 
 
 ## The §8 vectors, and why `ingest` reports a cut rather than a count

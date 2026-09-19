@@ -83,6 +83,14 @@ trust model lands: [transport shape](/design/transport-shape.md).
 **No byte may leave the process before the trust model** ([peer and
 tier](/concepts/peer-and-tier.md)).
 
+# Built beside it, 2026-09-19
+
+The [sync session](/concepts/sync-session.md) exchanges whole shareable state, resent
+until acknowledged. That is the baseline this page's range-based reconciliation will be
+measured against: it converges under loss, duplication, reordering and partition (thirty
+simulated schedules), and it costs O(document) per change. Range fingerprints cut the
+bytes; they add nothing to what converges, which is why the simpler thing came first.
+
 # Status
 
 `planned`. Nothing built. **Blocked** on the trust model.

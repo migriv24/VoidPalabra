@@ -59,7 +59,7 @@ into the OKF *explicitly* — because an LLM reading this bundle will not infer 
 
 ## Status
 
-**What is built**, as of 2026-09-18 — seven layers, each `status:current` in the
+**What is built**, as of 2026-09-19 — eight layers, each `status:current` in the
 bundle with a `resource:` link to the code that backs it:
 
 | layer | what it gives you |
@@ -71,6 +71,7 @@ bundle with a `resource:` link to the code that backs it:
 | [utterance](okf/concepts/utterance.md) + [history graph](okf/concepts/history-graph.md) | a Void Core command journal becomes a content-addressed **partial order** — time travel, blame, and a cut name two peers agree on |
 | [replica](okf/concepts/replica.md) | a device's state **kept between syncs**, so a deletion stays deleted, a delete that raced an edit is asked about, and a restored backup or copied device is caught before it reuses a tag |
 | [anomaly](okf/concepts/anomaly.md) + [content reference](okf/concepts/content-reference.md) | after a merge: the rules no device broke but the merge did (two runes with one name, a link a concurrent change broke), and the files the document names that this device does not have |
+| [sync session](okf/concepts/sync-session.md) | the protocol as a pure state machine — frames and the time in, frames and events out. Converges under loss, duplication, reordering and partition; withholds private runes in every form; files by hash; presence. Opens no socket |
 
 Everything else in the bundle is
 `status:planned`, per the honesty convention inherited from Void Core (no
@@ -88,7 +89,7 @@ git clone https://github.com/migriv24/VoidPalabra
 cd VoidPalabra
 cmake -S . -B build -G Ninja
 cmake --build build
-ctest --test-dir build      # 15 suites: property tests, leaks, embedding, 246 conformance vectors
+ctest --test-dir build      # 16 suites: property tests, leaks, embedding, a simulated network, 276 conformance vectors
 ```
 
 `tools/check_okf.py` runs as a suite when a `python` is on PATH and is skipped

@@ -98,6 +98,12 @@ public:
     const std::string& id() const { return id_; }
     std::uint64_t issued() const { return issued_; }
 
+    /* Moves whenever the document may have changed — an observation that recorded
+     * something, a merge, a resolution. A reader that derives something expensive
+     * from the document (a sync session's export, say) recomputes only when this
+     * moves. Not persisted, and not comparable between replicas. */
+    std::uint64_t revision() const { return revision_; }
+
     /* How to read a field that holds more than one value. Applied at read time
      * only, like everywhere else in this layer — two replicas with different
      * policies still hold identical documents. Not persisted: it is configuration,
@@ -204,6 +210,7 @@ public:
 private:
     std::string id_;
     std::uint64_t issued_ = 0;
+    std::uint64_t revision_ = 0;
     Doc doc_;
     JoinPolicy policy_;
 };

@@ -243,6 +243,13 @@ and two tests embed the library in a fresh project to keep it that way.
 cJSON. `VOIDPALABRA_VENDOR_CJSON=OFF` compiles against our header and leaves the
 implementation to what the host already links, and a test proves it links.
 
+**Ruled by the author, 2026-09-18:** *Void Maiz owns what networking looks like, Void
+Palabra owns what networking is, the host owns what is shared.* The transport stays
+this library's pillar; a Maiz networking module drives a
+[sync session](/concepts/sync-session.md) and draws what it reports. The seams Maiz named
+— an ephemeral channel for opaque bytes, an export set asked through one function, and
+files with a "known but not fetched" state — are all in the session.
+
 **What the networking module is, in this bundle's terms**: the right-hand column of
 [transport shape](/design/transport-shape.md) — sockets, discovery, framing, timeouts, the
 fetching of [content references](/concepts/content-reference.md). This library stays the

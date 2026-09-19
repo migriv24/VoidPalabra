@@ -1,0 +1,93 @@
+{
+	"kind":	"frame",
+	"about":	"§11 — the sync frame: what an implementation writes, and what it must refuse before believing",
+	"cases":	[{
+			"name":	"a first hello, not yet having heard the peer",
+			"in":	{
+				"kind":	"hello",
+				"from":	"replica-A-0123456789",
+				"session":	"replica-A-0123456789@0",
+				"seq":	0
+			},
+			"out":	"56505331590000007b226b696e64223a2268656c6c6f222c2266726f6d223a227265706c6963612d412d30313233343536373839222c2273657373696f6e223a227265706c6963612d412d303132333435363738394030222c22736571223a307d"
+		}, {
+			"name":	"a keepalive hello, having heard the peer — must DIFFER (the flag is on the wire)",
+			"in":	{
+				"kind":	"hello",
+				"from":	"replica-A-0123456789",
+				"session":	"replica-A-0123456789@0",
+				"seq":	1
+			},
+			"out":	"56505331590000007b226b696e64223a2268656c6c6f222c2266726f6d223a227265706c6963612d412d30313233343536373839222c2273657373696f6e223a227265706c6963612d412d303132333435363738394030222c22736571223a317d"
+		}, {
+			"name":	"an ack",
+			"in":	{
+				"kind":	"ack",
+				"from":	"replica-B-0123456789",
+				"session":	"s",
+				"digest":	"c8ae5e9d0a4c4e11a2b8a1c4f33c1f3b5e4fd9e4ad8b3b1e6f1a1b0b7a6c5d4e"
+			},
+			"out":	"565053318e0000007b226b696e64223a2261636b222c2266726f6d223a227265706c6963612d422d30313233343536373839222c2273657373696f6e223a2273222c22736571223a302c22646967657374223a2263386165356539643061346334653131613262386131633466333363316633623565346664396534616438623362316536663161316230623761366335643465227d"
+		}, {
+			"name":	"a want for two files",
+			"in":	{
+				"kind":	"want",
+				"from":	"replica-B-0123456789",
+				"session":	"s",
+				"addresses":	["2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824", "486ea46224d1bb4fb680f34f7c9ad96a8f24ec88be73ea8e5a6c65260e9cb8a7"]
+			},
+			"out":	"56505331d70000007b226b696e64223a2277616e74222c2266726f6d223a227265706c6963612d422d30313233343536373839222c2273657373696f6e223a2273222c22736571223a302c22616464726573736573223a5b2232636632346462613566623061333065323665383362326163356239653239653162313631653563316661373432356537333034333336323933386239383234222c2234383665613436323234643162623466623638306633346637633961643936613866323465633838626537336561386535613663363532363065396362386137225d7d"
+		}, {
+			"name":	"a presence payload rides raw after the header",
+			"in":	{
+				"kind":	"presence",
+				"from":	"replica-A-0123456789",
+				"session":	"s",
+				"seq":	3,
+				"payload":	"{\"selected\":\"rune_7\"}"
+			},
+			"out":	"56505331470000007b226b696e64223a2270726573656e6365222c2266726f6d223a227265706c6963612d412d30313233343536373839222c2273657373696f6e223a2273222c22736571223a337d7b2273656c6563746564223a2272756e655f37227d"
+		}, {
+			"name":	"an empty frame — refused",
+			"in":	{
+				"hex":	""
+			},
+			"out":	"refused"
+		}, {
+			"name":	"the wrong magic — refused",
+			"in":	{
+				"hex":	"585858580200000070"
+			},
+			"out":	"refused"
+		}, {
+			"name":	"a header length beyond the frame — refused",
+			"in":	{
+				"hex":	"56505331ffffff7f7b7d"
+			},
+			"out":	"refused"
+		}, {
+			"name":	"a header that is not JSON — refused",
+			"in":	{
+				"hex":	"56505331030000006e6f74"
+			},
+			"out":	"refused"
+		}, {
+			"name":	"a header with no kind — refused",
+			"in":	{
+				"hex":	"56505331020000007b7d"
+			},
+			"out":	"refused"
+		}, {
+			"name":	"a well-formed hello, as bytes — valid",
+			"in":	{
+				"hex":	"56505331310000007b226b696e64223a2268656c6c6f222c2266726f6d223a2261222c2273657373696f6e223a2273222c22736571223a307d"
+			},
+			"out":	"valid"
+		}, {
+			"name":	"the same hello with a payload it may not carry — refused",
+			"in":	{
+				"hex":	"56505331310000007b226b696e64223a2268656c6c6f222c2266726f6d223a2261222c2273657373696f6e223a2273222c22736571223a307d7878"
+			},
+			"out":	"refused"
+		}]
+}

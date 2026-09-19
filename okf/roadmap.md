@@ -31,7 +31,7 @@ The ordering rule, unchanged since founding:
 | **Phase 2** — [persistence](/concepts/persistence.md) | store, container, structural chunking and file I/O built | codecs; platform mapping |
 | **client surface** — [archive](/concepts/archive.md) | built, incl. atomic file I/O | — |
 | **Phase 3** — [history graph](/concepts/history-graph.md) | utterances, the graph, cuts and the linear extension built — **unblocked 2026-08-27** | replay; inverses; width / chain decomposition |
-| **Phase 4** — [reconciliation](/concepts/reconciliation.md) | the [replica](/concepts/replica.md), the door for peer documents (2026-09-16), [anomalies](/concepts/anomaly.md) and [content references](/concepts/content-reference.md) (2026-09-18) built; the state machine not started | protocol unblocked; transport blocked on trust — and may now live in a Void Maiz module ([integration](/design/integration.md) §6) |
+| **Phase 4** — [reconciliation](/concepts/reconciliation.md) | the [replica](/concepts/replica.md), the door (2026-09-16), [anomalies](/concepts/anomaly.md), [content references](/concepts/content-reference.md) (2026-09-18) and the [sync session](/concepts/sync-session.md) (2026-09-19) built | protocol unblocked; transport blocked on trust — and may now live in a Void Maiz module ([integration](/design/integration.md) §6) |
 | **Phase 5** — the CLI surface | not started | deliberately last |
 
 Language: **C++20, CMake, zero dependencies**, behind a C ABI when one is needed.
@@ -63,7 +63,16 @@ insert/erase-by-index over elements, which suits Hormiga's newsletter *blocks*. 
 character-level editor would want run-length operations, and building that on
 per-character nodes would be wasteful.
 
-## 3. The reconciliation state machine — **the biggest unmeasured risk**
+## 3. ~~The reconciliation state machine~~ — **built 2026-09-19; the risk is now measured**
+
+The [sync session](/concepts/sync-session.md): whole-state anti-entropy, the export set,
+files by hash, presence, and a signature slot, as a pure state machine. Thirty simulated
+schedules of four peers under 30% loss, duplication, reordering and a partition — thirty
+converged, after the first run found a handshake deadlock. What remains under it:
+**range reconciliation** to cut the bytes, and **one file ledger per device** rather than
+per session. Neither changes what converges.
+
+### What it was, kept for the record
 
 **Its two prerequisites landed 2026-09-16, pulled forward by a real client.** A
 machine that exchanges state needs something persistent to exchange —

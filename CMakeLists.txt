@@ -71,6 +71,9 @@ add_library(voidpalabra STATIC
   src/utterance/journal.cpp
   src/utterance/utterance.cpp
   src/utterance/history.cpp
+  src/sync/export.cpp
+  src/sync/wire.cpp
+  src/sync/session.cpp
   src/archive/archive.cpp
   src/archive/miga.cpp
 )
@@ -172,6 +175,15 @@ if(NOT MSVC)
   target_compile_options(voidpalabra_merge_rules_test PRIVATE -Wall -Wextra)
 endif()
 add_test(NAME merge_rules COMMAND voidpalabra_merge_rules_test)
+
+add_executable(voidpalabra_sync_test tests/sync_test.cpp)
+target_include_directories(voidpalabra_sync_test PRIVATE vendor)
+target_link_libraries(voidpalabra_sync_test PRIVATE voidpalabra)
+if(NOT MSVC)
+  target_compile_options(voidpalabra_sync_test PRIVATE -Wall -Wextra)
+endif()
+add_test(NAME sync COMMAND voidpalabra_sync_test)
+set_tests_properties(sync PROPERTIES TIMEOUT 600)
 
 add_executable(voidpalabra_utterance_test tests/utterance_test.cpp)
 target_include_directories(voidpalabra_utterance_test PRIVATE vendor)

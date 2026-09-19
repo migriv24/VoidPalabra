@@ -25,6 +25,7 @@
 #include "voidpalabra/utterance.hpp"
 #include "voidpalabra/replica.hpp"
 #include "voidpalabra/references.hpp"
+#include "voidpalabra/sync.hpp"
 
 #include "cJSON.h"
 
@@ -204,6 +205,47 @@ bool evaluate(const std::string& kind, const cJSON* c, std::string& out,
             out = acc.empty() ? "none" : acc;
             return true;
         }
+        if (kind == "frame") {
+            /* `in` is a message as JSON — {kind, from, session, seq, digest?, reason?,
+             * addresses?, address?, payload?} with payload as text — and `out` is the
+             * hex of its frame (SPEC §11). Or `in` is {"hex": "..."}, a frame as
+             * bytes, and `out` is "valid" or "refused": what any implementation must
+             * refuse before believing it. */
+            const cJSON* hexin = cJSON_GetObjectItemCaseSensitive(const_cast<cJSON*>(input), "hex");
+            if (hexin && cJSON_IsString(hexin)) {
+                std::string bytes, h = hexin->valuestring;
+                for (std::size_t i = 0; i + 1 < h.size(); i += 2)
+                    bytes.push_back(static_cast<char>(std::stoi(h.substr(i, 2), nullptr, 16)));
+                sync::Message m;
+                out = sync::decode_frame(bytes, m, sync::Limits{}) ? "valid" : "refused";
+                return true;
+            }
+            auto str = [&](const char* k) {
+                const cJSON* v = cJSON_GetObjectItemCaseSensitive(const_cast<cJSON*>(input), k);
+                return v && cJSON_IsString(v) ? std::string(v->valuestring) : std::string();
+            };
+            static const std::pair<const char*, sync::Kind> kinds[] = {
+                {"hello", sync::Kind::hello}, {"doc", sync::Kind::doc}, {"ack", sync::Kind::ack},
+                {"refuse", sync::Kind::refuse}, {"want", sync::Kind::want}, {"content", sync::Kind::content},
+                {"absent", sync::Kind::absent}, {"presence", sync::Kind::presence}, {"bye", sync::Kind::bye}};
+            sync::Message m;
+            bool known = false;
+            for (const auto& k : kinds) if (str("kind") == k.first) { m.kind = k.second; known = true; }
+            if (!known) { why = "unknown kind in case"; return false; }
+            m.from = str("from");
+            m.session = str("session");
+            const cJSON* seq = cJSON_GetObjectItemCaseSensitive(const_cast<cJSON*>(input), "seq");
+            m.seq = seq && cJSON_IsNumber(seq) ? static_cast<std::uint64_t>(seq->valuedouble) : 0;
+            m.digest = str("digest");
+            m.reason = str("reason");
+            m.address = str("address");
+            m.payload = str("payload");
+            const cJSON* as = cJSON_GetObjectItemCaseSensitive(const_cast<cJSON*>(input), "addresses");
+            for (const cJSON* a = as ? as->child : nullptr; a; a = a->next)
+                if (cJSON_IsString(a)) m.addresses.push_back(a->valuestring);
+            out = to_hex_bytes(sync::encode_frame(m));
+            return true;
+        }
         if (kind == "utterance") {
             /* `in` is an utterance object. `out` is its content address, which is
              * the one thing two implementations must agree on before anything
@@ -344,6 +386,27 @@ void run_file(const std::string& path, bool regen, Totals& tot,
          * These are the SPEC's actual invariants — set semantics, hydration,
          * undirected symmetry, order sensitivity — expressed as relations between
          * adjacent cases, so they survive any regeneration. */
+        /* A name that states its own outcome — "... — refused", "... — valid",
+         * "... — none" — is held to it, the same way "must equal" is. Added after a
+         * vector named "a well-formed hello — valid" was regenerated to "refused":
+         * its hand-written header length was one byte short, the decoder was right,
+         * and --regen recorded the wrong expectation without a murmur. The name knew
+         * better than the bytes. */
+        for (const char* claim : {"refused", "valid", "none"}) {
+            std::string marker = std::string(" — ") + claim;  // " — claim" (an em dash, UTF-8)
+            std::size_t at = label.find(marker);
+            if (at == std::string::npos) continue;
+            std::size_t end = at + marker.size();
+            if (end < label.size() && label[end] != ' ' && label[end] != '(') continue;
+            if (!regen && got != claim) {
+                std::printf("    FAIL %s: named '%s', produced '%s'\n", label.c_str(), claim, got.c_str());
+                failures.push_back(path + " / " + label + ": outcome named in the case differs");
+                ++tot.fail;
+            } else if (!regen) {
+                ++tot.pass;
+            }
+        }
+
         bool claims_equal = label.find("must equal") != std::string::npos;
         bool claims_differ = label.find("must DIFFER") != std::string::npos;
         if ((claims_equal || claims_differ) && !previous_out.empty()) {
@@ -400,6 +463,7 @@ int main(int argc, char** argv) {
         "conformance/cases/19-replica.json",
         "conformance/cases/20-merge-anomalies.json",
         "conformance/cases/21-references.json",
+        "conformance/cases/22-frames.json",
     };
 
     std::printf("Void Palabra conformance — SPEC.md v%d%s\n\n", kCanonVersion,

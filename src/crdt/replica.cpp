@@ -444,6 +444,7 @@ Replica::Observed Replica::observe(const cJSON* state) {
     doc_.root = work;
     out.delta.root = delta;
     out.ok = true;
+    if (out.changes) ++revision_;
     return out;
 }
 
@@ -501,6 +502,7 @@ MergeResult Replica::merge(const cJSON* remote, std::string* why) {
     cJSON* joined = crdt::join_node(doc_.root, remote);
     cJSON_Delete(doc_.root);
     doc_.root = joined;
+    ++revision_;
     return MergeResult::ok;
 }
 
@@ -557,6 +559,7 @@ bool Replica::resolve(const Conflict& conflict, std::size_t side, Doc* delta_out
 
     cJSON_Delete(doc_.root);
     doc_.root = work;
+    ++revision_;
     if (delta_out) {
         Doc d;
         d.root = delta;

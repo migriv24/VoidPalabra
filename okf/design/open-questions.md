@@ -329,6 +329,16 @@ conflict's sides are values; which replica wrote each one is recoverable from th
 but not exposed. Small, and it waits on finding 1, because an unsigned author is a
 claim.
 
+**How cryptography arrives — decided 2026-09-19.** Void Maiz asked on Void Hormiga's
+behalf, since Hormiga offered to donate its stand-in transport (libsodium throughout).
+The answer keeps "zero dependencies" true without pretending: the library defines
+**hooks, not primitives** — a signature slot on every frame, and `Host::sign` /
+`Host::verify` that a host fills with whatever it links. When a scheme is chosen, a
+separate, optional target (say `voidpalabra_sodium`) can implement those hooks with
+libsodium, so an application that wants the default gets it by linking one more target
+and an ESP32 that has hardware crypto plugs in its own. The core library never links
+it. Hand-rolling a signature scheme stays refused, as AEAD was.
+
 **What was built instead**, because it is needed whatever trust looks like: the door.
 A document from a peer is now validated before any part of it is merged
 ([SPEC.md](../../SPEC.md) §5.6), and the join converges even on what gets past it.

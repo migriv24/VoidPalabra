@@ -839,7 +839,7 @@ the graph.
 
 ## 9. Conformance
 
-`conformance/` holds **246 language-neutral vectors** covering every section above,
+`conformance/` holds **276 language-neutral vectors** covering every section above,
 in the shape `VoidCore:conformance/reduce/` proved. An implementation is conforming
 iff it reproduces every `out` exactly.
 
@@ -869,3 +869,112 @@ The SHA-256 implementation is verified against the FIPS 180-4 vectors, and again
 `VoidCore:conformance/scry/07-provenance.json`'s pinned
 `provenance({}) == 44136fa355b3678a`, which is `sha256("{}")` truncated — the one
 point of byte-level agreement Palabra and Core already share.
+
+---
+
+## 11. Sync **[normative]**
+
+What two peers exchange to converge, and nothing about how the bytes move. An
+implementation is a pure state machine handed frames and the time; it opens nothing,
+reads no clock, and never blocks. Whatever owns the network moves the frames.
+
+### 11.1 Frame
+
+```
+"VPS1" | header length, u32 little-endian | header: JSON object | payload: raw bytes
+```
+
+The header has `kind`, `from` (the sender's replica id, §5.7), `session` (the sender's
+nonce for this session), `seq` (a non-negative integer), and as the kind requires
+`digest`, `reason`, `address`, `addresses` (an array), and `auth` (lowercase hex; see
+§11.6). Members are written in that order and an empty optional member is omitted, so
+encoding is deterministic. Only `doc`, `content` and `presence` may carry a payload.
+
+A receiver MUST check, before acting on anything: the magic; the header length against
+the frame; the frame against its size limit; that the header is a JSON object; that
+`kind` is known; every member's type; the count of `addresses` against its limit; that a
+kind without a payload has none; and a `presence` payload against its own, smaller,
+limit. A frame failing any check is refused whole.
+
+### 11.2 Kinds
+
+| kind | meaning |
+|---|---|
+| `hello` | who I am. `seq` is 1 if the sender has heard the receiver, else 0 |
+| `doc` | my shareable state, whole: `digest`, and the document's JSON as payload |
+| `ack` | I merged the state with this `digest` |
+| `refuse` | I will not merge the state with this `digest`; `reason` |
+| `want` | send me the files at these `addresses` |
+| `content` | the file at `address`, as payload |
+| `absent` | I do not have, or will not serve, these `addresses` |
+| `presence` | an opaque payload about who is here; `seq` orders it |
+| `bye` | I am leaving; `reason` |
+
+**Handshake.** A peer sends `hello` until it hears one. A `hello` with `seq` 0 MUST be
+answered with a `hello`, every time, and a `hello` with `seq` 1 MUST NOT be. (Answering
+only the first time deadlocks the handshake whenever that one answer is lost.) A `hello`
+repeated periodically is the keepalive. A `hello` from the receiver's own replica id MUST
+end the session: two devices hold one identity (§5.7). A `hello` with a different
+`session` from a known peer means the peer restarted, and everything the receiver
+believed it had acknowledged is forgotten.
+
+Nothing but `hello` is acted on from a peer that has not sent one.
+
+### 11.3 State
+
+The state a peer shares is its **exportable** document (§11.5), and its `digest` is the
+lowercase hex SHA-256 of that document's canonical bytes (§5.3). A peer sends `doc`
+whenever that digest differs from the last one acknowledged, immediately when it has
+changed, and again after a resend interval until an `ack` arrives. A receiver MUST
+recompute the digest of what it received, refuse a mismatch, validate (§5.6), merge
+(§5.7), and then `ack` or `refuse`. A refused digest is not resent until it changes.
+
+A lost, duplicated or reordered `doc` is harmless: the merge is idempotent,
+commutative and associative, and the resend repairs a loss. That is why whole-state
+exchange is the baseline; a delta or range reconciliation is an optimization of the
+bytes, measured against this, and changes nothing that converges.
+
+### 11.4 Files
+
+A receiver asks (`want`) only for addresses the merged document names (§5.9) and it
+does not hold, and — under a cautious fetch policy — only those the host released. It
+MUST accept `content` only for an address it asked for and has not received, and only
+if the bytes match the address; otherwise the bytes are discarded. A sender serves
+only addresses named by its **exportable** document: a file only a withheld rune names
+is answered `absent`, because serving it would reveal that this device holds it.
+
+### 11.5 What may leave
+
+The host decides, per mantle and per rune, what may be shared. The exportable document
+is the replica document with:
+
+- every refused mantle or rune absent, **unless it has been removed**, in which case its
+  `present` set alone is kept — a removal is never private, or a thing shared before it
+  was withheld would live forever on the peers that received it;
+- every edge absent whose endpoint names a withheld mantle, or a name any withheld rune
+  holds — including a name a shared rune also holds, since the edge cannot say which.
+
+Withholding is not retraction: what was already shared stays where it went.
+
+### 11.6 Presence
+
+A separate kind, with an opaque payload that MUST NOT be merged, enriched, persisted or
+otherwise made part of any document. A receiver keeps only the newest by the sender's
+`seq`, dropping duplicates and older ones, and expires it on its own clock after a
+time-to-live without a newer one.
+
+### 11.7 Time
+
+Every state that waits MUST leave on elapsed time: an unanswered handshake, a silent
+peer, an unacknowledged state (resent), a requested file (re-asked, then reported
+unavailable), and presence (expired).
+
+### 11.8 Authentication
+
+Every frame has an `auth` slot. When a host supplies a signing hook, the slot holds its
+output over the frame encoded with the slot empty; when it supplies a verifying hook,
+a frame that fails it MUST be discarded before any other processing. This section
+defines the slot and the order of checks, not a scheme: which signature scheme, and
+whose keys are trusted, is `okf/design/open-questions.md` §6, and the transport that
+carries these frames stays blocked on it.
+

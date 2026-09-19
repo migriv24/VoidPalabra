@@ -22,6 +22,7 @@
 #include "voidpalabra/utterance.hpp"
 #include "voidpalabra/replica.hpp"
 #include "voidpalabra/references.hpp"
+#include "voidpalabra/sync.hpp"
 #include "voidpalabra/crdt/conflict.hpp"
 
 #include "cJSON.h"
@@ -420,6 +421,54 @@ void body_merge_rules() {
     cJSON_Delete(jbb);
 }
 
+/* A sync session allocates per frame: parsing a header, exporting and printing the
+ * shareable state, parsing a peer's state. A leak here is per message, forever. */
+void body_sync() {
+    using namespace voidpalabra::sync;
+    Replica a, b;
+    Replica::create("leak-sync-A-0000001", a, nullptr);
+    Replica::create("leak-sync-B-0000001", b, nullptr);
+    cJSON* s = cJSON_Parse("{\"mantles\":[{\"name\":\"m\",\"runes\":[{\"spirit\":{\"id\":\"r1\",\"name\":\"x\"},"
+                           "\"glyph\":\"t\",\"content\":{\"photo\":\"2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824\"}},"
+                           "{\"spirit\":{\"id\":\"secret\",\"name\":\"y\"},\"glyph\":\"t\",\"content\":{}}],"
+                           "\"layout\":{\"edges\":[{\"from\":\"x\",\"to\":\"y\"}]}}]}");
+    a.observe(s);
+    cJSON_Delete(s);
+    {
+        Host ha, hb;
+        ha.share = [](const std::string&, const std::string& r) { return r != "secret"; };
+        ha.references.fields["content.*"] = sha256_hex_anywhere();
+        hb.references = ha.references;
+        hb.have = [](const std::string&) { return false; };
+        ha.read = [](const std::string&, std::string& out) { out = "x"; return true; };
+        Session sa(a, ha), sb(b, hb);
+        std::vector<std::string> to_b = sa.start(0).send, to_a = sb.start(0).send;
+        for (int round = 0; round < 6; ++round) {
+            std::vector<std::string> nb, na;
+            for (const auto& f : to_b) { Step x = sb.receive(f, round * 100); nb.insert(nb.end(), x.send.begin(), x.send.end()); }
+            for (const auto& f : to_a) { Step x = sa.receive(f, round * 100); na.insert(na.end(), x.send.begin(), x.send.end()); }
+            Step ta = sa.tick(round * 100 + 50), tb = sb.tick(round * 100 + 50);
+            na.insert(na.end(), ta.send.begin(), ta.send.end());
+            nb.insert(nb.end(), tb.send.begin(), tb.send.end());
+            to_b = na;
+            to_a = nb;
+        }
+        sa.publish_presence("{}", 700);
+        /* The refusal paths: junk frames, a bad state, an oversize presence. */
+        sb.receive("VPS1\x05\x00\x00\x00{bad}", 800);
+        sb.receive("garbage", 800);
+        Message bad;
+        bad.kind = Kind::doc;
+        bad.from = a.id();
+        bad.session = "x";
+        bad.payload = "{\"palabra\":1,\"mantles\":{\"m\":{\"present\":7}}}";
+        sb.receive(encode_frame(bad), 800);
+        sa.publish_presence(std::string(20000, 'p'), 900);
+        sa.close("done", 1000);
+        Doc e = exportable(a.doc(), ha.share);
+    }
+}
+
 struct Case { const char* name; void (*fn)(); };
 
 const Case kCases[] = {
@@ -438,6 +487,7 @@ const Case kCases[] = {
     {"glyph declarations", body_glyphs},
     {"replica + validation", body_replica},
     {"anomalies + references", body_merge_rules},
+    {"sync session", body_sync},
 };
 
 }  // namespace

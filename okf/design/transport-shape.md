@@ -177,9 +177,10 @@ should, and the rules for one are sharper than "not versioned":
 - **Bounded, small, and cheap to refuse.** Of every message kind, this is the one a
   misbehaving peer can send most often.
 
-Not built: there is no state machine yet for it to belong to. Recorded so that the
-reconciliation message types are designed with a second class beside them rather
-than having one bolted on.
+**Built 2026-09-19**, as specified above, in the [sync session](/concepts/sync-session.md):
+presence is its own message kind with an opaque payload capped at 16 KB, and a test
+delivers two presences out of order with a duplicate and checks that only the newest
+arrives, once, and that the replica never moved.
 
 # The PROP note, cashed
 

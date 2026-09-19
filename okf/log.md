@@ -1,5 +1,70 @@
 # Bundle Update Log
 
+## 2026-09-19 — the sync protocol, built and measured under a hostile network
+
+Message received: `MESSAGE_FOR_VOIDPALABRA_maiz-networking-the-transport-stays-yours-2026-09-18.md`.
+The author ruled the line between the two libraries: **Void Maiz owns what networking
+looks like, Void Palabra owns what networking is, the host owns what is shared.** Maiz
+built its half (surfaces, presence rendering, profiles, settings) and named three seams it
+will need from this side: an ephemeral channel for opaque bytes, a sync seam that takes an
+export set, and files by hash with a "known but not fetched" state.
+
+That is the roadmap's next item — the reconciliation state machine — shaped by a real
+consumer. Built.
+
+* **The [sync session](/concepts/sync-session.md): a pure state machine.** Frames and the
+  time in, frames and events out. It opens no socket, reads no clock, never blocks, which
+  is what let it be built while trust still blocks every transport. Whole-state
+  anti-entropy: a peer sends its shareable state when it changes, resends until
+  acknowledged, and the receiver validates, merges and acks. A lost, duplicated or
+  reordered state is harmless by the join's laws. Normative as [SPEC.md](../SPEC.md) §11.
+
+* **The claim became a measurement, and it failed first.** Four peers, 30% loss, 20%
+  duplication, up to 1.5 s of reordering, a partition that heals, concurrent adds, edits
+  and deletions. The first run converged in 5 of 12 schedules. The cause: **losing the one
+  reply to the first hello deadlocked the handshake** — one side had answered and would not
+  answer again; the other ignored everything from a peer that had not said hello; both
+  gave up. Every hello now says whether its sender has heard the receiver, and one that
+  has not is always answered. After the fix: **thirty schedules, thirty converged.**
+
+* **Maiz's three seams, all in the session.**
+  - *Ephemeral channel* — `presence`, a separate message kind that cannot carry a document:
+    opaque bytes, capped at 16 KB (Maiz's default), newest by sender sequence, expiring on
+    the receiver's clock, never touching the replica. Tested out of order and duplicated.
+  - *Export set* — one function, asked about every mantle and rune whenever anything is sent,
+    the same function the host's interface asks. A withheld rune leaves in no form: not its
+    content, not its name inside a link (including a name a shared rune also holds — ambiguity
+    resolves toward not leaking), and not a file only it names, even when a peer asks for that
+    file by hash. Two consequences stated rather than hidden: withholding is not retraction,
+    and **a removal is never private** — a deletion still travels, as its presence record
+    alone, or a thing shared before it was withheld would live forever elsewhere.
+  - *Files* — want / content / absent. Only what was asked for is accepted, and only if the
+    bytes match the address; wrong bytes are refused and asked for again. A cautious fetch
+    policy leaves a file `deferred` — known, with its rune visible, not fetched — until the
+    host releases it, which is the author's "cautious file transfer".
+
+* **Every wait ends.** Unanswered handshake, silent peer, unacknowledged state, requested
+  file, stale presence — each leaves on elapsed time, and each has a test.
+
+* **Trust: a slot and two hooks, not cryptography.** Every frame carries an `auth` slot;
+  `Host::sign` and `Host::verify` fill and check it, and a frame failing verification is
+  discarded before anything else. Maiz relayed Hormiga's offer of its libsodium transport; the
+  answer ([open questions](/design/open-questions.md) §6.1) keeps zero dependencies honest:
+  hooks in the core, and when a scheme is chosen, an OPTIONAL companion target implements
+  them with libsodium. The core never links it.
+
+* **A conformance runner that was lying by omission.** A new vector named *"a well-formed
+  hello — valid"* regenerated to `refused`. The implementation was right: the hand-written
+  header length in the vector was one byte short. `--regen` recorded the wrong expectation
+  without complaint, and nothing would have caught it. Case names that state their own
+  outcome (`— refused`, `— valid`, `— none`) are now held to it the way `must equal` is, and
+  the check was proven to fail with the mistake put back. It found nothing else wrong in the
+  existing files, and it now enforces seventeen outcomes that were only prose before.
+
+* **Where the tree stands:** 16 suites (new: `sync`, 62 checks including 30 mesh
+  schedules), no leaks across 419,244 allocations, **276 conformance vectors** (from 246),
+  clean under `-Wall -Wextra`, zero dependencies. No `CANON_VERSION` change.
+
 ## 2026-09-18 — three questions, answered as three classes
 
 Message received: `MESSAGE_FOR_VOIDPALABRA_hormiga-networking-belongs-in-maiz-2026-09-19.md`.
