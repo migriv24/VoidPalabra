@@ -1,0 +1,786 @@
+{
+	"kind":	"links",
+	"about":	"§5.11 — declared link rules: the equivalence quotient, capacity per slot, and acyclicity, each a pure function of one state",
+	"cases":	[{
+			"name":	"two rewrites that shared a wire, merged: w, w1 and w2 are one wire with two ends",
+			"in":	{
+				"rules":	{
+					"equivalence":	["="],
+					"capacity":	[{
+							"name":	"one wire per port",
+							"relation":	"*",
+							"slot":	"from_port",
+							"max":	1
+						}, {
+							"name":	"a wire has two ends",
+							"relation":	"*",
+							"slot":	"to",
+							"max":	2,
+							"through_equivalence":	true
+						}]
+				},
+				"state":	{
+					"mantles":	[{
+							"id":	"m",
+							"name":	"net",
+							"runes":	[{
+									"spirit":	{
+										"id":	"w",
+										"name":	"w"
+									},
+									"glyph":	"wire",
+									"content":	{
+									}
+								}, {
+									"spirit":	{
+										"id":	"a2",
+										"name":	"a2"
+									},
+									"glyph":	"agent",
+									"content":	{
+									}
+								}, {
+									"spirit":	{
+										"id":	"w1",
+										"name":	"w1"
+									},
+									"glyph":	"wire",
+									"content":	{
+									}
+								}, {
+									"spirit":	{
+										"id":	"c2",
+										"name":	"c2"
+									},
+									"glyph":	"agent",
+									"content":	{
+									}
+								}, {
+									"spirit":	{
+										"id":	"w2",
+										"name":	"w2"
+									},
+									"glyph":	"wire",
+									"content":	{
+									}
+								}],
+							"layout":	{
+								"edges":	[{
+										"from":	"a2",
+										"to":	"w1",
+										"relation":	"1:0"
+									}, {
+										"from":	"w1",
+										"to":	"w",
+										"relation":	"="
+									}, {
+										"from":	"c2",
+										"to":	"w2",
+										"relation":	"1:0"
+									}, {
+										"from":	"w2",
+										"to":	"w",
+										"relation":	"="
+									}]
+							}
+						}]
+				}
+			},
+			"out":	"net/w=net/w,net/w1,net/w2|none"
+		}, {
+			"name":	"the same net with its runes and links listed in another order — must equal",
+			"in":	{
+				"rules":	{
+					"equivalence":	["="],
+					"capacity":	[{
+							"name":	"one wire per port",
+							"relation":	"*",
+							"slot":	"from_port",
+							"max":	1
+						}, {
+							"name":	"a wire has two ends",
+							"relation":	"*",
+							"slot":	"to",
+							"max":	2,
+							"through_equivalence":	true
+						}]
+				},
+				"state":	{
+					"mantles":	[{
+							"id":	"m",
+							"name":	"net",
+							"runes":	[{
+									"spirit":	{
+										"id":	"w2",
+										"name":	"w2"
+									},
+									"glyph":	"wire",
+									"content":	{
+									}
+								}, {
+									"spirit":	{
+										"id":	"c2",
+										"name":	"c2"
+									},
+									"glyph":	"agent",
+									"content":	{
+									}
+								}, {
+									"spirit":	{
+										"id":	"w1",
+										"name":	"w1"
+									},
+									"glyph":	"wire",
+									"content":	{
+									}
+								}, {
+									"spirit":	{
+										"id":	"a2",
+										"name":	"a2"
+									},
+									"glyph":	"agent",
+									"content":	{
+									}
+								}, {
+									"spirit":	{
+										"id":	"w",
+										"name":	"w"
+									},
+									"glyph":	"wire",
+									"content":	{
+									}
+								}],
+							"layout":	{
+								"edges":	[{
+										"from":	"w2",
+										"to":	"w",
+										"relation":	"="
+									}, {
+										"from":	"c2",
+										"to":	"w2",
+										"relation":	"1:0"
+									}, {
+										"from":	"w1",
+										"to":	"w",
+										"relation":	"="
+									}, {
+										"from":	"a2",
+										"to":	"w1",
+										"relation":	"1:0"
+									}]
+							}
+						}]
+				}
+			},
+			"out":	"net/w=net/w,net/w1,net/w2|none"
+		}, {
+			"name":	"a third segment fused onto the wire gives it three ends",
+			"in":	{
+				"rules":	{
+					"equivalence":	["="],
+					"capacity":	[{
+							"name":	"one wire per port",
+							"relation":	"*",
+							"slot":	"from_port",
+							"max":	1
+						}, {
+							"name":	"a wire has two ends",
+							"relation":	"*",
+							"slot":	"to",
+							"max":	2,
+							"through_equivalence":	true
+						}]
+				},
+				"state":	{
+					"mantles":	[{
+							"id":	"m",
+							"name":	"net",
+							"runes":	[{
+									"spirit":	{
+										"id":	"w",
+										"name":	"w"
+									},
+									"glyph":	"wire",
+									"content":	{
+									}
+								}, {
+									"spirit":	{
+										"id":	"a2",
+										"name":	"a2"
+									},
+									"glyph":	"agent",
+									"content":	{
+									}
+								}, {
+									"spirit":	{
+										"id":	"w1",
+										"name":	"w1"
+									},
+									"glyph":	"wire",
+									"content":	{
+									}
+								}, {
+									"spirit":	{
+										"id":	"c2",
+										"name":	"c2"
+									},
+									"glyph":	"agent",
+									"content":	{
+									}
+								}, {
+									"spirit":	{
+										"id":	"w2",
+										"name":	"w2"
+									},
+									"glyph":	"wire",
+									"content":	{
+									}
+								}, {
+									"spirit":	{
+										"id":	"e2",
+										"name":	"e2"
+									},
+									"glyph":	"agent",
+									"content":	{
+									}
+								}, {
+									"spirit":	{
+										"id":	"w3",
+										"name":	"w3"
+									},
+									"glyph":	"wire",
+									"content":	{
+									}
+								}],
+							"layout":	{
+								"edges":	[{
+										"from":	"a2",
+										"to":	"w1",
+										"relation":	"1:0"
+									}, {
+										"from":	"w1",
+										"to":	"w",
+										"relation":	"="
+									}, {
+										"from":	"c2",
+										"to":	"w2",
+										"relation":	"1:0"
+									}, {
+										"from":	"w2",
+										"to":	"w",
+										"relation":	"="
+									}, {
+										"from":	"e2",
+										"to":	"w3",
+										"relation":	"0:0"
+									}, {
+										"from":	"w3",
+										"to":	"w1",
+										"relation":	"="
+									}]
+							}
+						}]
+				}
+			},
+			"out":	"net/w=net/w,net/w1,net/w2,net/w3|47a08454b9feef61cc3f3ebb7307ff793d826c37dc6f4614011e16841ad8995e"
+		}, {
+			"name":	"two wires on one port",
+			"in":	{
+				"rules":	{
+					"equivalence":	["="],
+					"capacity":	[{
+							"name":	"one wire per port",
+							"relation":	"*",
+							"slot":	"from_port",
+							"max":	1
+						}, {
+							"name":	"a wire has two ends",
+							"relation":	"*",
+							"slot":	"to",
+							"max":	2,
+							"through_equivalence":	true
+						}]
+				},
+				"state":	{
+					"mantles":	[{
+							"id":	"m",
+							"name":	"net",
+							"runes":	[{
+									"spirit":	{
+										"id":	"x",
+										"name":	"x"
+									},
+									"glyph":	"agent",
+									"content":	{
+									}
+								}, {
+									"spirit":	{
+										"id":	"y",
+										"name":	"y"
+									},
+									"glyph":	"agent",
+									"content":	{
+									}
+								}, {
+									"spirit":	{
+										"id":	"z",
+										"name":	"z"
+									},
+									"glyph":	"agent",
+									"content":	{
+									}
+								}, {
+									"spirit":	{
+										"id":	"u",
+										"name":	"u"
+									},
+									"glyph":	"wire",
+									"content":	{
+									}
+								}, {
+									"spirit":	{
+										"id":	"v",
+										"name":	"v"
+									},
+									"glyph":	"wire",
+									"content":	{
+									}
+								}],
+							"layout":	{
+								"edges":	[{
+										"from":	"x",
+										"to":	"u",
+										"relation":	"2:0"
+									}, {
+										"from":	"y",
+										"to":	"u",
+										"relation":	"0:0"
+									}, {
+										"from":	"x",
+										"to":	"v",
+										"relation":	"2:0"
+									}, {
+										"from":	"z",
+										"to":	"v",
+										"relation":	"0:0"
+									}]
+							}
+						}]
+				}
+			},
+			"out":	"none|234a6f585dee5e5b29f33592b2d1f383c1d0f4375064a33bc00faa0e7fa657a8"
+		}, {
+			"name":	"one seat, two bookings",
+			"in":	{
+				"rules":	{
+					"capacity":	[{
+							"name":	"one booking per seat",
+							"relation":	"booked",
+							"slot":	"to",
+							"max":	1
+						}]
+				},
+				"state":	{
+					"mantles":	[{
+							"id":	"m",
+							"name":	"net",
+							"runes":	[{
+									"spirit":	{
+										"id":	"seat-12",
+										"name":	"seat-12"
+									},
+									"glyph":	"seat",
+									"content":	{
+									}
+								}, {
+									"spirit":	{
+										"id":	"ana",
+										"name":	"ana"
+									},
+									"glyph":	"person",
+									"content":	{
+									}
+								}, {
+									"spirit":	{
+										"id":	"bo",
+										"name":	"bo"
+									},
+									"glyph":	"person",
+									"content":	{
+									}
+								}],
+							"layout":	{
+								"edges":	[{
+										"from":	"ana",
+										"to":	"seat-12",
+										"relation":	"booked"
+									}, {
+										"from":	"bo",
+										"to":	"seat-12",
+										"relation":	"booked"
+									}]
+							}
+						}]
+				}
+			},
+			"out":	"none|d7ee701a8cc8ad743a223f65524c80e9fe62a8044701e22174cdb3f9ef994259"
+		}, {
+			"name":	"the same seat, one booking — must DIFFER",
+			"in":	{
+				"rules":	{
+					"capacity":	[{
+							"name":	"one booking per seat",
+							"relation":	"booked",
+							"slot":	"to",
+							"max":	1
+						}]
+				},
+				"state":	{
+					"mantles":	[{
+							"id":	"m",
+							"name":	"net",
+							"runes":	[{
+									"spirit":	{
+										"id":	"seat-12",
+										"name":	"seat-12"
+									},
+									"glyph":	"seat",
+									"content":	{
+									}
+								}, {
+									"spirit":	{
+										"id":	"ana",
+										"name":	"ana"
+									},
+									"glyph":	"person",
+									"content":	{
+									}
+								}, {
+									"spirit":	{
+										"id":	"bo",
+										"name":	"bo"
+									},
+									"glyph":	"person",
+									"content":	{
+									}
+								}],
+							"layout":	{
+								"edges":	[{
+										"from":	"ana",
+										"to":	"seat-12",
+										"relation":	"booked"
+									}]
+							}
+						}]
+				}
+			},
+			"out":	"none|none"
+		}, {
+			"name":	"two folders each moved into the other",
+			"in":	{
+				"rules":	{
+					"acyclic":	["in"],
+					"capacity":	[{
+							"name":	"one parent",
+							"relation":	"in",
+							"slot":	"from",
+							"max":	1
+						}]
+				},
+				"state":	{
+					"mantles":	[{
+							"id":	"m",
+							"name":	"net",
+							"runes":	[{
+									"spirit":	{
+										"id":	"root",
+										"name":	"root"
+									},
+									"glyph":	"folder",
+									"content":	{
+									}
+								}, {
+									"spirit":	{
+										"id":	"f1",
+										"name":	"f1"
+									},
+									"glyph":	"folder",
+									"content":	{
+									}
+								}, {
+									"spirit":	{
+										"id":	"f2",
+										"name":	"f2"
+									},
+									"glyph":	"folder",
+									"content":	{
+									}
+								}],
+							"layout":	{
+								"edges":	[{
+										"from":	"f1",
+										"to":	"f2",
+										"relation":	"in"
+									}, {
+										"from":	"f2",
+										"to":	"f1",
+										"relation":	"in"
+									}]
+							}
+						}]
+				}
+			},
+			"out":	"none|90b33fb72e30073dc089ed66bf5470cef02ef8a911b2300fef5469ba1af8b0cf"
+		}, {
+			"name":	"a rune linked to itself under an acyclic label",
+			"in":	{
+				"rules":	{
+					"acyclic":	["*"]
+				},
+				"state":	{
+					"mantles":	[{
+							"id":	"m",
+							"name":	"net",
+							"runes":	[{
+									"spirit":	{
+										"id":	"a",
+										"name":	"a"
+									},
+									"glyph":	"agent",
+									"content":	{
+									}
+								}],
+							"layout":	{
+								"edges":	[{
+										"from":	"a",
+										"to":	"a",
+										"relation":	"next"
+									}]
+							}
+						}]
+				}
+			},
+			"out":	"none|f0d29032d772dde1186031fec893afdb743f3f0d0b773c974d1a34ba10843dfe"
+		}, {
+			"name":	"sameness asserted twice on two devices is one class, represented by the least id",
+			"in":	{
+				"rules":	{
+					"equivalence":	["same-as"]
+				},
+				"state":	{
+					"mantles":	[{
+							"id":	"m",
+							"name":	"net",
+							"runes":	[{
+									"spirit":	{
+										"id":	"x",
+										"name":	"x"
+									},
+									"glyph":	"contact",
+									"content":	{
+									}
+								}, {
+									"spirit":	{
+										"id":	"y",
+										"name":	"y"
+									},
+									"glyph":	"contact",
+									"content":	{
+									}
+								}, {
+									"spirit":	{
+										"id":	"z",
+										"name":	"z"
+									},
+									"glyph":	"contact",
+									"content":	{
+									}
+								}, {
+									"spirit":	{
+										"id":	"k",
+										"name":	"k"
+									},
+									"glyph":	"contact",
+									"content":	{
+									}
+								}],
+							"layout":	{
+								"edges":	[{
+										"from":	"x",
+										"to":	"y",
+										"relation":	"same-as"
+									}, {
+										"from":	"z",
+										"to":	"y",
+										"relation":	"same-as"
+									}]
+							}
+						}]
+				}
+			},
+			"out":	"net/x=net/x,net/y,net/z|none"
+		}, {
+			"name":	"an equivalence link fuses and never occupies a slot",
+			"in":	{
+				"rules":	{
+					"equivalence":	["="],
+					"capacity":	[{
+							"name":	"nothing points here twice",
+							"relation":	"*",
+							"slot":	"to",
+							"max":	1
+						}]
+				},
+				"state":	{
+					"mantles":	[{
+							"id":	"m",
+							"name":	"net",
+							"runes":	[{
+									"spirit":	{
+										"id":	"a",
+										"name":	"a"
+									},
+									"glyph":	"agent",
+									"content":	{
+									}
+								}, {
+									"spirit":	{
+										"id":	"b",
+										"name":	"b"
+									},
+									"glyph":	"agent",
+									"content":	{
+									}
+								}, {
+									"spirit":	{
+										"id":	"c",
+										"name":	"c"
+									},
+									"glyph":	"agent",
+									"content":	{
+									}
+								}],
+							"layout":	{
+								"edges":	[{
+										"from":	"a",
+										"to":	"c",
+										"relation":	"uses"
+									}, {
+										"from":	"b",
+										"to":	"c",
+										"relation":	"="
+									}]
+							}
+						}]
+				}
+			},
+			"out":	"net/b=net/b,net/c|none"
+		}, {
+			"name":	"a dangling link and a link to a shared name are left to the anomalies",
+			"in":	{
+				"rules":	{
+					"capacity":	[{
+							"name":	"one",
+							"relation":	"*",
+							"slot":	"to",
+							"max":	1
+						}],
+					"acyclic":	["*"]
+				},
+				"state":	{
+					"mantles":	[{
+							"id":	"m",
+							"name":	"net",
+							"runes":	[{
+									"spirit":	{
+										"id":	"t1",
+										"name":	"t"
+									},
+									"glyph":	"agent",
+									"content":	{
+									}
+								}, {
+									"spirit":	{
+										"id":	"t2",
+										"name":	"t"
+									},
+									"glyph":	"agent",
+									"content":	{
+									}
+								}, {
+									"spirit":	{
+										"id":	"s",
+										"name":	"s"
+									},
+									"glyph":	"agent",
+									"content":	{
+									}
+								}],
+							"layout":	{
+								"edges":	[{
+										"from":	"s",
+										"to":	"t",
+										"relation":	"x"
+									}, {
+										"from":	"s",
+										"to":	"nobody",
+										"relation":	"x"
+									}, {
+										"from":	"nobody",
+										"to":	"s",
+										"relation":	"x"
+									}]
+							}
+						}]
+				}
+			},
+			"out":	"none|none"
+		}, {
+			"name":	"a relation that is not i:j occupies no port",
+			"in":	{
+				"rules":	{
+					"capacity":	[{
+							"name":	"one per port",
+							"relation":	"*",
+							"slot":	"ports",
+							"max":	1
+						}]
+				},
+				"state":	{
+					"mantles":	[{
+							"id":	"m",
+							"name":	"net",
+							"runes":	[{
+									"spirit":	{
+										"id":	"a",
+										"name":	"a"
+									},
+									"glyph":	"agent",
+									"content":	{
+									}
+								}, {
+									"spirit":	{
+										"id":	"b",
+										"name":	"b"
+									},
+									"glyph":	"agent",
+									"content":	{
+									}
+								}],
+							"layout":	{
+								"edges":	[{
+										"from":	"a",
+										"to":	"b",
+										"relation":	"supports"
+									}, {
+										"from":	"b",
+										"to":	"a",
+										"relation":	"supports"
+									}]
+							}
+						}]
+				}
+			},
+			"out":	"none|none"
+		}]
+}

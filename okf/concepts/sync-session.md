@@ -33,6 +33,9 @@ placeholders are the others' — see [integration](/design/integration.md) §6.
 | presence | a separate kind, opaque bytes, newest-by-sequence, expiring (§11.6) |
 | time | every waiting state leaves on elapsed time (§11.7) |
 | trust | a signature slot on every frame and hooks to fill and check it (§11.8) |
+| a byte stream | a u32 length before each frame, and a reader that takes bytes in any pieces and refuses a bad stream on its first bytes (§11.9, `StreamReader`) |
+| bursts | `Timing::coalesce`: a changed state waits out a minimum interval, and the export is not even recomputed inside it; a state the peer just sent is not echoed back |
+| a link that dies | nothing special: the transport opens a new connection and a new session over the same replica. A paused phone app, a sleeping laptop and a Wi-Fi handover are all this, and it is tested |
 
 # What the measurement said
 
@@ -54,7 +57,15 @@ has not heard you is always answered. Now normative.
   fingerprints are how the bytes will come down, measured against this.
 - **One session, one peer.** A mesh is several sessions over one replica. A file wanted
   from three peers is currently asked of each separately.
-- **No transport.** On purpose, until trust.
+- **No transport.** On purpose, until trust — and the socket layer is platform code
+  (discovery, interfaces, Android's multicast lock, sealing), which the author's lean on
+  2026-09-20 places outside this library ([integration](/design/integration.md) §7).
+  Everything every transport must agree on is here instead.
+
+**Measured, 2026-09-20:** a 200-change burst (a reducer stepping every 10 ms) with
+`coalesce = 100` sent at most 25 states instead of 200 — and first sent 42, because the
+receiver echoed every merged state back to its sender. The echo is now suppressed: a
+state equal to the one the peer just sent is one it holds.
 
 # Status
 

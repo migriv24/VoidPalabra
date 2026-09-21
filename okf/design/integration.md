@@ -258,3 +258,43 @@ Neither imports the other's concerns. The trust blocker (open questions §6) mov
 the transport, not with the algebra: a networking module in a shared library is the same
 exposure a stand-in transport in one application was, multiplied by every application that
 links it.
+
+# 7. Phones, and the socket layer
+
+**Recorded 2026-09-20**, when Void Maiz asked for a `voidpalabra_lan` companion target —
+Void Hormiga's UDP beacon, X25519 handshake and sealed stream, lifted so every
+application links one copy — and the author said the family is starting Android
+applications that will need networking, with the lean that **this library does not own
+it**.
+
+The line that follows from the lean, and from the sans-IO ruling, is the same line as
+§6, drawn one level lower:
+
+| every transport must agree on it | it belongs to one platform or one policy |
+|---|---|
+| the frame (SPEC §11.1) and the stream envelope (§11.9) | sockets, and which interface to bind (a VPN or WSL adapter is not the LAN) |
+| what a dead link means: a new session, not an error | discovery: beacons out, unicast answers back |
+| coalescing a burst (`Timing::coalesce`) | Android's `MulticastLock`, a JNI call |
+| a live fetch-policy change (`Session::set_fetch`) | join codes, QR codes, pairing strings |
+| the signature slot and its hooks | which cryptography fills them, and libsodium's NDK build |
+
+**The left column is here, tested, and specified.** The right column is platform code,
+and its natural home is beside the platform code that already exists — the view
+library's networking module, or a sibling of its own — consuming `StreamReader` rather
+than inventing framing. Nothing in the left column needs a socket to be measured, and
+nothing in the right column needs to know what a document is.
+
+**Android, from this side:** the library cross-compiles for `arm64-v8a` with NDK r28 at
+API 26, library and every test program, with no warnings. It has not yet been RUN on a
+device. It needs no Java, no permission, no thread, and no filesystem path beyond what
+the host passes to the archive.
+
+**Lessons a transport author inherits** (from Void Hormiga's defects and Void Maiz's
+Android work, generalized): a quiet socket is not a broken one — let the session's
+`silence_timeout` decide, never a read timeout; give each device its own port, or two
+copies on one machine dial themselves; keep listening while carrying a link; and treat
+an app pause as a disconnect whose repair is a new session.
+
+**Still gated.** Whoever builds the socket layer inherits open questions §6.1 exactly as
+§6 said: the transport that carries frames between devices is blocked on trust, and a
+LAN-only arrangement is an explicit yes from the author per application, not a default.

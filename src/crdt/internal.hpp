@@ -12,6 +12,7 @@
  */
 #pragma once
 
+#include <cstdint>
 #include <set>
 #include <string>
 #include <vector>
@@ -91,6 +92,21 @@ struct Live {
 };
 
 Live live_of(const cJSON* reg);
+
+/* What a tag `<writer>_<n>` says about its write: who, and the Lamport counter. A
+ * tag in any other form ranks with n = 0 and its whole text as the writer's
+ * tiebreak — still totally ordered, just not meaningfully. */
+struct Stamp {
+    std::uint64_t n = 0;
+    std::string writer;
+    std::string tag;
+    bool operator<(const Stamp& o) const {
+        if (n != o.n) return n < o.n;
+        if (writer != o.writer) return writer < o.writer;
+        return tag < o.tag;
+    }
+};
+Stamp stamp_of(const std::string& tag);
 
 /* Apply a field's declared join. READ-TIME ONLY: this never touches the stored
  * document, so two peers running different policies still hold identical bytes.

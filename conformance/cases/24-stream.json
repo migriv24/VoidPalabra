@@ -1,0 +1,53 @@
+{
+	"kind":	"stream",
+	"about":	"§11.9 — the stream envelope: a u32 little-endian length before each frame, and what a reader must refuse",
+	"cases":	[{
+			"name":	"two frames back to back",
+			"in":	{
+				"hex":	"3900000056505331310000007b226b696e64223a2268656c6c6f222c2266726f6d223a2261222c2273657373696f6e223a2273222c22736571223a307d3900000056505331310000007b226b696e64223a2268656c6c6f222c2266726f6d223a2261222c2273657373696f6e223a2273222c22736571223a307d"
+			},
+			"out":	"56505331310000007b226b696e64223a2268656c6c6f222c2266726f6d223a2261222c2273657373696f6e223a2273222c22736571223a307d,56505331310000007b226b696e64223a2268656c6c6f222c2266726f6d223a2261222c2273657373696f6e223a2273222c22736571223a307d"
+		}, {
+			"name":	"a frame and half of the next",
+			"in":	{
+				"hex":	"3900000056505331310000007b226b696e64223a2268656c6c6f222c2266726f6d223a2261222c2273657373696f6e223a2273222c22736571223a307d3900000056505331310000007b226b696e64223a2268656c"
+			},
+			"out":	"56505331310000007b226b696e64223a2268656c6c6f222c2266726f6d223a2261222c2273657373696f6e223a2273222c22736571223a307d+partial"
+		}, {
+			"name":	"nothing yet — none",
+			"in":	{
+				"hex":	""
+			},
+			"out":	"none"
+		}, {
+			"name":	"a magic arriving in pieces is not judged early",
+			"in":	{
+				"hex":	"390000005650"
+			},
+			"out":	"none+partial"
+		}, {
+			"name":	"a length over the frame limit — refused",
+			"in":	{
+				"hex":	"01000004"
+			},
+			"out":	"refused"
+		}, {
+			"name":	"a length shorter than a frame's prefix — refused",
+			"in":	{
+				"hex":	"03000000565053"
+			},
+			"out":	"refused"
+		}, {
+			"name":	"another protocol on the stream — refused",
+			"in":	{
+				"hex":	"1000000048545450"
+			},
+			"out":	"refused"
+		}, {
+			"name":	"a good frame, then garbage — refused",
+			"in":	{
+				"hex":	"3900000056505331310000007b226b696e64223a2268656c6c6f222c2266726f6d223a2261222c2273657373696f6e223a2273222c22736571223a307d0500000058585858"
+			},
+			"out":	"refused"
+		}]
+}

@@ -186,6 +186,11 @@ public:
      * a conflict asks which value, an anomaly asks for an edit. */
     std::vector<Anomaly> anomalies() const;
 
+    /* Who wrote each live value at `place` — see crdt/provenance.hpp. A read of the
+     * tags already in the document; replica ids, not people, and a claim rather
+     * than proof until the trust model lands. */
+    std::vector<Written> writers(const Place& place) const;
+
     /* Settle a conflict by choosing one of its `sides`, recorded as this replica's
      * act. For a value conflict the chosen value is written. For a
      * `deleted_while_edited` conflict the sides are "deleted" and "kept": keeping

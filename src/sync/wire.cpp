@@ -11,6 +11,8 @@
 
 #include "cJSON.h"
 
+#include <algorithm>
+#include <cstdint>
 #include <cstring>
 #include <string>
 
@@ -180,6 +182,70 @@ bool decode_frame(const std::string& frame, Message& out, const Limits& limits, 
         *with_auth_blank = encode_frame(blank);
     }
     out = std::move(m);
+    return true;
+}
+
+/* ── the stream envelope, SPEC §11.9 ──────────────────────────────────────── */
+
+namespace {
+
+constexpr std::size_t kPrefix = 8;  // "VPS1" + the header length
+
+std::uint32_t read_u32(const std::string& b, std::size_t at) {
+    return static_cast<std::uint32_t>(static_cast<unsigned char>(b[at])) |
+           static_cast<std::uint32_t>(static_cast<unsigned char>(b[at + 1])) << 8 |
+           static_cast<std::uint32_t>(static_cast<unsigned char>(b[at + 2])) << 16 |
+           static_cast<std::uint32_t>(static_cast<unsigned char>(b[at + 3])) << 24;
+}
+
+}  // namespace
+
+std::string stream_frame(const std::string& frame) {
+    std::string out;
+    out.reserve(frame.size() + 4);
+    std::uint32_t n = static_cast<std::uint32_t>(frame.size());
+    for (int i = 0; i < 4; ++i) out.push_back(static_cast<char>((n >> (8 * i)) & 0xFF));
+    out += frame;
+    return out;
+}
+
+void StreamReader::feed(const char* data, std::size_t n) {
+    if (broken() || n == 0) return;
+    /* Compact before growing, so a long-lived connection does not keep every byte
+     * it ever received. */
+    if (at_ > 0 && at_ >= buf_.size() / 2) {
+        buf_.erase(0, at_);
+        at_ = 0;
+    }
+    buf_.append(data, n);
+}
+
+bool StreamReader::next(std::string& frame) {
+    if (broken()) return false;
+    std::size_t have = buf_.size() - at_;
+    if (have < 4) return false;
+    std::uint32_t len = read_u32(buf_, at_);
+    if (len > limits_.max_frame) {
+        why_ = "a frame longer than the limit";
+        return false;
+    }
+    if (len < kPrefix) {
+        why_ = "a frame shorter than its own prefix";
+        return false;
+    }
+    /* The magic as soon as it is here — not after the whole claimed length. */
+    std::size_t magic = std::min<std::size_t>(have - 4, 4);
+    if (buf_.compare(at_ + 4, magic, "VPS1", magic) != 0) {
+        why_ = "not a Void Palabra frame";
+        return false;
+    }
+    if (have - 4 < len) return false;
+    frame.assign(buf_, at_ + 4, len);
+    at_ += 4 + len;
+    if (at_ == buf_.size()) {
+        buf_.clear();
+        at_ = 0;
+    }
     return true;
 }
 

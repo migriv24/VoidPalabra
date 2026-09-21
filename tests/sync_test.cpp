@@ -736,6 +736,152 @@ void a_refused_state_is_not_resent_until_it_changes() {
 
 }  // namespace
 
+/* ── on a byte stream ────────────────────────────────────────────────────── */
+
+void a_stream_is_reassembled_however_the_socket_splits_it() {
+    g_current = "a_stream_is_reassembled_however_the_socket_splits_it";
+    std::vector<std::string> frames;
+    for (int i = 0; i < 20; ++i) {
+        Message m;
+        m.kind = i % 3 == 0 ? Kind::presence : Kind::hello;
+        m.from = "replica-A-0123456789";
+        m.session = "s";
+        m.seq = static_cast<std::uint64_t>(i);
+        if (m.kind == Kind::presence) m.payload = std::string(static_cast<std::size_t>(i * 37), 'x');
+        frames.push_back(encode_frame(m));
+    }
+    std::string stream;
+    for (const auto& f : frames) stream += stream_frame(f);
+
+    /* Every way a socket can hand the bytes over: one at a time, all at once, and
+     * random pieces that cut frames, lengths and magics anywhere. */
+    std::mt19937 rng(77);
+    for (int trial = 0; trial < 50; ++trial) {
+        StreamReader r;
+        std::vector<std::string> got;
+        std::size_t at = 0;
+        while (at < stream.size()) {
+            std::size_t n = trial == 0 ? 1
+                          : trial == 1 ? stream.size()
+                          : std::uniform_int_distribution<std::size_t>(0, 64)(rng);
+            n = std::min(n, stream.size() - at);
+            r.feed(stream.data() + at, n);
+            at += n;
+            std::string f;
+            while (r.next(f)) got.push_back(f);
+        }
+        check(!r.broken(), "a well-formed stream never breaks the reader: " + r.why());
+        check(got == frames, "every frame, whole, in order, trial " + std::to_string(trial));
+        check(r.pending() == 0, "and nothing left over");
+    }
+}
+
+void a_bad_stream_breaks_at_once_and_stays_broken() {
+    g_current = "a_bad_stream_breaks_at_once_and_stays_broken";
+    Limits small;
+    small.max_frame = 1024;
+    {
+        StreamReader r(small);
+        r.feed(std::string("\xff\xff\x00\x00", 4));  // 65535 > max_frame
+        std::string f;
+        check(!r.next(f) && r.broken(), "a length over the limit is refused from four bytes");
+    }
+    {
+        StreamReader r;
+        r.feed(std::string("\x10\x00\x00\x00HTTP", 8));
+        std::string f;
+        check(!r.next(f) && r.broken(), "another protocol is refused on its first bytes, not its last");
+        r.feed(stream_frame(encode_frame(Message{})));
+        check(!r.next(f) && r.broken(), "and a broken stream stays broken: it cannot resynchronize");
+    }
+    {
+        StreamReader r;
+        r.feed(std::string("\x03\x00\x00\x00VPS", 7));
+        std::string f;
+        check(!r.next(f) && r.broken(), "a length shorter than a frame's own prefix");
+    }
+    {
+        StreamReader r;
+        r.feed(std::string("\x10\x00\x00\x00VP", 6));
+        std::string f;
+        check(!r.next(f) && !r.broken(), "a magic arriving in pieces is not judged before it is here");
+    }
+}
+
+/* ── lifecycle ───────────────────────────────────────────────────────────── */
+
+/* A phone app is paused and its sockets die; a laptop sleeps; Wi-Fi hands over.
+ * None of them is an error. The transport opens a new connection and a new session
+ * over the SAME replica, and whatever changed meanwhile, on either side, arrives. */
+void a_link_that_dies_is_replaced_and_nothing_is_lost() {
+    g_current = "a_link_that_dies_is_replaced_and_nothing_is_lost";
+    Device a("sync-device-A-0020"), b("sync-device-B-0020");
+    a.observe(doc_json({rune_json("x", "x", "{\"body\":\"one\"}")}));
+    Net net(20);
+    Link& first = net.connect(a, b, a.host(), b.host());
+    check(net.settle(10000), "the first link settles");
+
+    first.up = false;  // paused: nothing moves, and the sessions will time out
+    a.observe(doc_json({rune_json("x", "x", "{\"body\":\"edited while paused\"}")}));
+    net.run(Timing{}.silence_timeout + 5000);
+    check(first.at_a->is_closed() && first.at_b->is_closed(), "the dead link ends on elapsed time");
+
+    net.links.clear();
+    net.connect(a, b, a.host(), b.host());  // resumed: a new connection, new sessions
+    check(net.settle(10000), "the new link settles");
+    check(a.shown() == b.shown(), "the edit made while the link was dead arrived");
+}
+
+/* ── coalescing ──────────────────────────────────────────────────────────── */
+
+void a_burst_of_changes_leaves_as_few_states() {
+    g_current = "a_burst_of_changes_leaves_as_few_states";
+    Device a("sync-device-A-0021"), b("sync-device-B-0021");
+    Timing t;
+    t.coalesce = 100;
+    Net net(21);
+    Link& l = net.connect(a, b, a.host(), b.host(), t);
+    check(net.settle(10000), "settles");
+    int before = l.sent_by_kind[Kind::doc];
+
+    /* A reducer stepping every 10 ms for two seconds: 200 changes. */
+    for (int i = 0; i < 200; ++i) {
+        a.observe(doc_json({rune_json("x", "x", "{\"step\":" + std::to_string(i) + "}")}));
+        net.step(10);
+    }
+    check(net.settle(10000), "settles after the burst");
+    int sent = l.sent_by_kind[Kind::doc] - before;
+    check(sent <= 25, "about one state per 100 ms, not one per change (sent " + std::to_string(sent) + ")");
+    check(a.shown() == b.shown(), "and the last state is the one that arrived");
+}
+
+void cautious_mode_can_be_turned_off_on_a_live_link() {
+    g_current = "cautious_mode_can_be_turned_off_on_a_live_link";
+    const std::string photo = "a photo";
+    const std::string addr = digest_of(photo);
+    Device a("sync-device-A-0022"), b("sync-device-B-0022");
+    a.files[addr] = photo;
+    a.observe(doc_json({rune_json("p", "p", "{\"photo\":\"" + addr + "\"}")}));
+    Net net(22);
+    Link& l = net.connect(a, b, a.host(), b.host(share_everything(), FetchPolicy::cautious));
+    net.settle(10000);
+    check(l.at_b->content_state(addr) == ContentState::deferred, "deferred while cautious");
+
+    net.route(l, false, l.at_b->set_fetch(FetchPolicy::automatic, net.now));
+    net.run(5000);
+    check(b.files.count(addr) == 1, "turning cautious mode off fetches what it deferred, without reconnecting");
+
+    const std::string photo2 = "a second photo";
+    const std::string addr2 = digest_of(photo2);
+    a.files[addr2] = photo2;
+    net.route(l, false, l.at_b->set_fetch(FetchPolicy::cautious, net.now));
+    a.observe(doc_json({rune_json("p", "p", "{\"photo\":\"" + addr + "\"}"),
+                        rune_json("q", "q", "{\"photo\":\"" + addr2 + "\"}")}));
+    net.settle(10000);
+    net.run(5000);
+    check(l.at_b->content_state(addr2) == ContentState::deferred, "and turning it back on defers the next one");
+}
+
 int main() {
     a_frame_round_trips();
     a_bad_frame_is_refused_before_it_is_believed();
@@ -755,6 +901,11 @@ int main() {
     a_restarted_peer_is_sent_the_state_again();
     signatures_plug_in_through_the_hooks();
     a_refused_state_is_not_resent_until_it_changes();
+    a_stream_is_reassembled_however_the_socket_splits_it();
+    a_bad_stream_breaks_at_once_and_stays_broken();
+    a_link_that_dies_is_replaced_and_nothing_is_lost();
+    a_burst_of_changes_leaves_as_few_states();
+    cautious_mode_can_be_turned_off_on_a_live_link();
 
     std::printf("sync: %d checks", g_checks);
     if (g_failures.empty()) {

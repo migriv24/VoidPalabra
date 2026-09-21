@@ -23,6 +23,7 @@
 #include "voidpalabra/replica.hpp"
 #include "voidpalabra/references.hpp"
 #include "voidpalabra/sync.hpp"
+#include "voidpalabra/links.hpp"
 #include "voidpalabra/crdt/conflict.hpp"
 
 #include "cJSON.h"
@@ -469,6 +470,55 @@ void body_sync() {
     }
 }
 
+void body_concurrent_structure() {
+    using namespace voidpalabra::sync;
+    cJSON* s = cJSON_Parse(
+        "{\"mantles\":[{\"name\":\"net\",\"runes\":["
+        "{\"spirit\":{\"id\":\"w\",\"name\":\"w\"}},{\"spirit\":{\"id\":\"w1\",\"name\":\"w1\"}},"
+        "{\"spirit\":{\"id\":\"a\",\"name\":\"a\"}},{\"spirit\":{\"id\":\"b\",\"name\":\"b\"}}],"
+        "\"layout\":{\"edges\":[{\"from\":\"w1\",\"to\":\"w\",\"relation\":\"=\"},"
+        "{\"from\":\"a\",\"to\":\"w1\",\"relation\":\"1:0\"},{\"from\":\"b\",\"to\":\"w\",\"relation\":\"1:0\"},"
+        "{\"from\":\"a\",\"to\":\"b\",\"relation\":\"in\"},{\"from\":\"b\",\"to\":\"a\",\"relation\":\"in\"},"
+        "{\"from\":\"a\",\"to\":\"nobody\"}]}}]}");
+    LinkRules rules;
+    rules.equivalence = {"="};
+    rules.acyclic = {"in"};
+    Capacity c;
+    c.name = "one";
+    c.slot = Slot::ports;
+    rules.capacity.push_back(c);
+    Capacity e;
+    e.name = "ends";
+    e.through_equivalence = true;
+    rules.capacity.push_back(e);
+    Quotient q = quotient(s, rules);
+    for (const Violation& v : check_links(s, rules)) {
+        cJSON* j = violation_to_json(v);
+        cJSON_Delete(j);
+        (void)v.hash();
+    }
+
+    Replica a, b;
+    Replica::create("leak-cs-A-00000001", a, nullptr);
+    Replica::create("leak-cs-B-00000001", b, nullptr);
+    a.observe(s);
+    b.merge(a.doc());
+    JoinPolicy pol;
+    pol.fields["placement"] = FieldJoin::Latest;
+    b.set_policy(pol);
+    Doc f = b.flatten();
+    (void)b.writers({"net", "a", "", "present"});
+    (void)b.writers({"net", "", "", "edges"});
+    cJSON_Delete(s);
+
+    StreamReader r;
+    Message m;
+    m.kind = Kind::hello;
+    r.feed(stream_frame(encode_frame(m)) + std::string("\x04\x00\x00\x00", 4));
+    std::string frame;
+    while (r.next(frame)) {}
+}
+
 struct Case { const char* name; void (*fn)(); };
 
 const Case kCases[] = {
@@ -488,6 +538,7 @@ const Case kCases[] = {
     {"replica + validation", body_replica},
     {"anomalies + references", body_merge_rules},
     {"sync session", body_sync},
+    {"concurrent structure", body_concurrent_structure},
 };
 
 }  // namespace

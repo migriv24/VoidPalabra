@@ -46,6 +46,7 @@
  *   crdt/document.hpp   enrich / join / flatten, and editing
  *   crdt/conflict.hpp   a conflict as an addressed value
  *   crdt/anomaly.hpp    a rule every device kept that the merge broke
+ *   crdt/provenance.hpp who wrote what the document shows
  *   crdt/sequence.hpp   ordered content (Fugue)
  */
 
@@ -54,4 +55,5 @@
 #include "voidpalabra/crdt/document.hpp"
 #include "voidpalabra/crdt/conflict.hpp"
 #include "voidpalabra/crdt/anomaly.hpp"
+#include "voidpalabra/crdt/provenance.hpp"
 #include "voidpalabra/crdt/sequence.hpp"

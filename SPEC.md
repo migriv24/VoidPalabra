@@ -528,6 +528,13 @@ that never decreases and is never reused. `id` is 16–128 characters of
 `[A-Za-z0-9-]`; it contains no `_`, so one replica's tags cannot be parsed as
 another's. An id MUST be unique per replica instance.
 
+**The counter is a Lamport clock.** After a successful merge, the counter MUST be at
+least the largest `n` of any tag in the merged document, under any id, ignoring any
+`n` above 2^40. The next tag minted therefore outranks every write the replica has
+seen, which is what §5.10's `latest` reads. The counter still never decreases and is
+still unique per id, so nothing above changes. The ceiling keeps a corrupt or hostile
+peer from running the counter out of room; an honest replica never reaches it.
+
 **Observing** a state records the difference between the state and what the replica
 shows (`flatten` under its policy):
 
@@ -554,8 +561,9 @@ the receiver, or recorded by the receiver as an add to a different set or of a
 different value. Both mean two histories are minting under one id: a restored
 backup, a crash between sending and saving, or a copied replica.
 
-**Forking** gives a replica's document a new id and a counter of 0. Restoring,
-cloning and provisioning a device from an existing replica MUST fork.
+**Forking** gives a replica's document a new id, and a counter equal to the largest
+`n` in the document (the Lamport rule, as if the fork had merged what it holds).
+Restoring, cloning and provisioning a device from an existing replica MUST fork.
 
 **Persisting** a replica MUST keep the document, id and counter together, and loading
 MUST refuse a document holding a tag under the replica's id beyond its counter.
@@ -622,6 +630,72 @@ keeps**, not only the current one.
 
 Bytes MUST NOT be embedded in the document to avoid this. That makes every version
 carry every file, which is the failure §7's archive exists to remove.
+
+### 5.10 Read-time joins **[normative where two peers must agree]**
+
+A field holding more than one live value is a conflict (§5.3) unless the application
+declares otherwise, per field, in a join policy keyed like a reference policy (exact
+key, or `prefix*`, longest match winning). A policy is applied when a document is
+READ — by `flatten`, by `conflicts`, by what an anomaly reads — and never by `join`:
+two peers with different policies still hold byte-identical documents.
+
+Where two peers running the SAME policy must show the same value, the choice is
+normative:
+
+| join | shows | when it is right |
+|---|---|---|
+| `conflict` (default) | every value; a conflict is reported | anything a person would be upset to lose |
+| `pick` | the least value by canonical bytes | a value with no meaning to rank by: a random id, a cached thumbnail |
+| `max` | the numeric maximum; a conflict if any value is not a number | a high-water mark |
+| `latest` | the value under the greatest **stamp** | view state: placement, size, collapsed |
+
+A **stamp** is read from a live tag `<writer>_<n>`: `writer` is everything before the
+last `_`, and `n` the decimal after it (0 if absent or not decimal). Stamps are ordered
+by `n`, then `writer`, then the whole tag, each as bytes; a value's stamp is the
+greatest among its live tags, and two values with equal stamps are ordered by their
+canonical bytes. Because the counter is a Lamport clock (§5.7), a write made after
+seeing another outranks it. `latest` is a presentation rule, not a security property:
+a peer minting enormous counters wins every `latest` field it writes.
+
+**Provenance.** The `writer` of a live tag is the replica that wrote that value. An
+implementation MAY expose it per place (a field, a `present` set, a rune's tags, a
+mantle's edges). It is a claim, not proof, until frames are authenticated (§11.8).
+
+### 5.11 Link rules **[normative]**
+
+An application MAY declare rules about its links (§4.3), per relation label, as an
+exact label or a `prefix*` pattern (`*` matches every label). They are checked over a
+Void Core state document, and each is a pure function of it:
+
+- **Equivalence.** Links under these labels mean "the same thing". Runes are grouped
+  into the classes of the smallest equivalence relation containing those links. A
+  class's **representative** is its least member by (mantle, `spirit.id`). The join of
+  two equivalence relations is the closure of their union, so concurrent fusing never
+  conflicts.
+- **Capacity** `{name, relation, slot, max, through_equivalence}`. At most `max` link
+  ends may occupy one slot. A slot is the rune at the `to` end, at the `from` end, or
+  at either end (`ends`); or a (rune, port) pair, with ports read from a relation
+  `"i:j"` of two decimal integers — `i` at `from`, `j` at `to` — at either end
+  (`ports`), the `from` end only (`from_port`) or the `to` end only (`to_port`). A link
+  whose relation is not `"i:j"` occupies no port. With `through_equivalence`, a rune
+  is replaced by its class representative first. A link under an equivalence label
+  never occupies a slot.
+- **Acyclic.** Links under these labels, directed `from` → `to`, MUST NOT form a
+  cycle. Every strongly connected component of two or more runes, or one rune linked
+  to itself, is one violation.
+
+An endpoint is resolved as in §5.8: a name in the link's own mantle, or `{mantle,
+rune}`. A link with an endpoint naming no rune, or a name two runes share, is not
+counted — those are §5.8's anomalies, reported once, there.
+
+A **violation** renders as `{kind, rule, mantle, slot?, runes, links}`: `kind` is
+`over_capacity` or `cycle`; `rule` the capacity's name or the acyclic pattern; `slot`
+the slot's rune id, with `:<port>` for a port; `runes` the sorted, distinct
+`spirit.id`s of every link involved; `links` those links' canonical values, sorted and
+distinct. It is named by a §3 digest with kind `violation`. Violations are listed by
+(kind, rule, mantle, slot, runes). As with an anomaly, an implementation MUST NOT
+repair one itself: the fix is an ordinary edit, and the violation disappears when the
+state no longer breaks the rule.
 
 ---
 
@@ -887,7 +961,7 @@ reads no clock, and never blocks. Whatever owns the network moves the frames.
 The header has `kind`, `from` (the sender's replica id, §5.7), `session` (the sender's
 nonce for this session), `seq` (a non-negative integer), and as the kind requires
 `digest`, `reason`, `address`, `addresses` (an array), and `auth` (lowercase hex; see
-§11.6). Members are written in that order and an empty optional member is omitted, so
+§11.8). Members are written in that order and an empty optional member is omitted, so
 encoding is deterministic. Only `doc`, `content` and `presence` may carry a payload.
 
 A receiver MUST check, before acting on anything: the magic; the header length against
@@ -928,6 +1002,10 @@ whenever that digest differs from the last one acknowledged, immediately when it
 changed, and again after a resend interval until an `ack` arrives. A receiver MUST
 recompute the digest of what it received, refuse a mismatch, validate (§5.6), merge
 (§5.7), and then `ack` or `refuse`. A refused digest is not resent until it changes.
+
+A peer MAY hold a changed state back until a minimum interval has passed since its
+last `doc` (coalescing), and MAY treat a state whose digest equals the last one it
+merged from that peer as acknowledged: the peer sent it, so it holds it.
 
 A lost, duplicated or reordered `doc` is harmless: the merge is idempotent,
 commutative and associative, and the resend repairs a loss. That is why whole-state
@@ -978,3 +1056,18 @@ defines the slot and the order of checks, not a scheme: which signature scheme, 
 whose keys are trusted, is `okf/design/open-questions.md` §6, and the transport that
 carries these frames stays blocked on it.
 
+### 11.9 On a byte stream
+
+A frame does not carry its own length (its payload runs to its end). A transport that
+delivers messages whole needs nothing more. A transport that delivers a **byte stream**
+MUST precede every frame with its length as a u32, little-endian:
+
+```
+frame length, u32 little-endian | frame (§11.1)
+```
+
+A reader MUST treat as broken, for the rest of the stream, a length greater than its
+frame limit, a length shorter than a frame's fixed 8-byte prefix, or bytes following
+the length that do not begin with the magic — checking the magic as soon as its bytes
+arrive, not after the claimed length. A stream cannot resynchronize after a bad
+length; the connection is closed, and a new one starts a new session (§11.2).

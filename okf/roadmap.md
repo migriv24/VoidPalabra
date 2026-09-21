@@ -31,7 +31,7 @@ The ordering rule, unchanged since founding:
 | **Phase 2** — [persistence](/concepts/persistence.md) | store, container, structural chunking and file I/O built | codecs; platform mapping |
 | **client surface** — [archive](/concepts/archive.md) | built, incl. atomic file I/O | — |
 | **Phase 3** — [history graph](/concepts/history-graph.md) | utterances, the graph, cuts and the linear extension built — **unblocked 2026-08-27** | replay; inverses; width / chain decomposition |
-| **Phase 4** — [reconciliation](/concepts/reconciliation.md) | the [replica](/concepts/replica.md), the door (2026-09-16), [anomalies](/concepts/anomaly.md), [content references](/concepts/content-reference.md) (2026-09-18) and the [sync session](/concepts/sync-session.md) (2026-09-19) built | protocol unblocked; transport blocked on trust — and may now live in a Void Maiz module ([integration](/design/integration.md) §6) |
+| **Phase 4** — [reconciliation](/concepts/reconciliation.md) | the [replica](/concepts/replica.md), the door (2026-09-16), [anomalies](/concepts/anomaly.md), [content references](/concepts/content-reference.md) (2026-09-18) and the [sync session](/concepts/sync-session.md) (2026-09-19), [concurrent structure](/concepts/concurrent-structure.md) and the stream envelope (2026-09-20) built | protocol unblocked; transport blocked on trust, and the socket layer is platform code outside this library ([integration](/design/integration.md) §7) |
 | **Phase 5** — the CLI surface | not started | deliberately last |
 
 Language: **C++20, CMake, zero dependencies**, behind a C ABI when one is needed.

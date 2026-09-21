@@ -66,7 +66,47 @@ Live resolve(const cJSON* reg, FieldJoin how) {
         return l;
     }
 
+    if (how == FieldJoin::Latest) {
+        /* Every live tag ranks by (counter, writer, tag). A value held under several
+         * tags ranks by its best one. Tags are unique, so two values can only tie
+         * if a tag was reused — which `identity_collision` refuses — and even then
+         * the value bytes break the tie, so the answer stays a function of the
+         * document. */
+        OrSet s = orset_from_json(reg);
+        const std::string* best = nullptr;
+        Stamp best_stamp;
+        for (const auto& kv : s.adds) {
+            if (s.removes.count(kv.first)) continue;
+            Stamp st = stamp_of(kv.first);
+            if (!best || best_stamp < st || (!(st < best_stamp) && *best < kv.second)) {
+                best = &kv.second;
+                best_stamp = st;
+            }
+        }
+        if (best) {
+            l.values.assign(1, *best);
+            l.conflicted = false;
+        }
+        return l;
+    }
+
     return l;  // Conflict: both values stand
+}
+
+Stamp stamp_of(const std::string& tag) {
+    Stamp st;
+    st.tag = tag;
+    std::size_t cut = tag.rfind('_');
+    if (cut == std::string::npos) return st;
+    st.writer = tag.substr(0, cut);
+    std::uint64_t n = 0;
+    for (std::size_t i = cut + 1; i < tag.size(); ++i) {
+        char c = tag[i];
+        if (c < '0' || c > '9' || n > (UINT64_MAX - 9) / 10) return Stamp{0, st.writer, tag};
+        n = n * 10 + static_cast<std::uint64_t>(c - '0');
+    }
+    st.n = cut + 1 < tag.size() ? n : 0;
+    return st;
 }
 
 /* Canonical bytes -> a cJSON value. A corrupted document yields null rather than
@@ -105,7 +145,13 @@ JoinPolicy JoinPolicy::core_defaults() {
     /* `placement` is the view slice — Void Core already carves it out of undo
      * (SPEC §3.2) precisely because it is arrangement rather than content. Two
      * peers moving one rune should converge, not argue. */
-    p.fields["placement"] = FieldJoin::Pick;
+    p.fields["placement"] = FieldJoin::Latest;
+    /* A mantle's `id` is a random identity nobody chose. Two devices that each
+     * created a mantle with one name leave two ids in its register, and a conflict
+     * would ask the user "which random string?" — a question with no answer. The
+     * contents merge into the one mantle the name keys either way (reported
+     * 2026-09-19, three devices each running `mantle new team`). */
+    p.fields["id"] = FieldJoin::Pick;
     return p;
 }
 

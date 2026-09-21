@@ -162,15 +162,28 @@ Step Session::tick(Millis now) {
         return s;
     }
 
-    std::uint64_t before = seen_revision_;
-    refresh_export();
-    if (seen_revision_ != before) refresh_wants(s, now);
+    /* Inside the coalescing window the export is not even recomputed: computing it
+     * is O(document), and a host changing its document every frame would otherwise
+     * pay that every frame for states that will never be sent. */
+    bool settling = timing_.coalesce > 0 && doc_sent_at_ >= 0 &&
+                    now - doc_sent_at_ < timing_.coalesce;
+    if (!settling) {
+        std::uint64_t before = seen_revision_;
+        refresh_export();
+        if (seen_revision_ != before) refresh_wants(s, now);
+    }
 
-    /* A NEW state goes out at once; an unacknowledged one is repeated on the timer.
-     * Waiting out the timer for a change the peer has never seen would make every
-     * edit feel two seconds late for no gain. */
+    /* A NEW state goes out at once (or at the end of the coalescing window); an
+     * unacknowledged one is repeated on the timer. Waiting out the timer for a
+     * change the peer has never seen would make every edit feel two seconds late
+     * for no gain. */
+    /* A state identical to the one the peer just sent us is one the peer holds: it
+     * sent it. Echoing it back would double the traffic of every one-sided burst —
+     * the burst test measured exactly that, 42 states for 21 changes. */
+    if (!settling && !export_digest_.empty() && export_digest_ == last_merged_)
+        acked_ = export_digest_;
     bool changed = export_digest_ != sent_;
-    if (export_digest_ != acked_ && export_digest_ != refused_ &&
+    if (!settling && export_digest_ != acked_ && export_digest_ != refused_ &&
         (changed || now - doc_sent_at_ >= timing_.resend)) {
         Message m;
         m.kind = Kind::doc;
@@ -415,6 +428,22 @@ Step Session::fetch(const std::string& address, Millis now) {
     if (it->second.state == ContentState::deferred || it->second.state == ContentState::unavailable) {
         it->second.state = ContentState::wanted;
         it->second.attempts = 0;
+    }
+    ask(s, now);
+    if (!s.send.empty()) last_said_ = now;
+    return s;
+}
+
+Step Session::set_fetch(FetchPolicy policy, Millis now) {
+    Step s;
+    host_.fetch = policy;
+    for (auto& [address, w] : wants_) {
+        if (policy == FetchPolicy::automatic && w.state == ContentState::deferred) {
+            w.state = ContentState::wanted;
+            w.attempts = 0;
+        } else if (policy == FetchPolicy::cautious && w.state == ContentState::wanted) {
+            w.state = ContentState::deferred;
+        }
     }
     ask(s, now);
     if (!s.send.empty()) last_said_ = now;

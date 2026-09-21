@@ -1,5 +1,60 @@
 # Bundle Update Log
 
+## 2026-09-20 — concurrent structure: every scenario has an answer, and none needs coordination
+
+Message received: `MESSAGE_FOR_VOIDPALABRA_maiz-concurrent-rewrites-are-our-strongest-case-2026-09-20.md`.
+Void Maiz is making its node graph a multi-user canvas, demonstrated with interaction
+combinators, and measured the case that breaks: two disjoint redexes sharing a wire,
+stepped on two devices, merge into two broken halves and never the wire the mathematics
+requires. The author asked this library to lead the research, with the framing that
+interaction nets are *"our strongest area"* and that every concurrent scenario — gone,
+missing, duplicated, split, transformed — should have an answer.
+
+Answered as a class rather than a case ([concurrent structure](/concepts/concurrent-structure.md)):
+
+* **One principle.** Concurrent changes commute when neither deletes or overwrites what
+  the other depends on (parallel independence, DPO rewriting). The fix is never in the
+  join; it is in what each device writes.
+* **Three declared link rules**, a pure function of one state, identical on every peer
+  (`links.hpp`, SPEC §5.11): **equivalence** — the partition lattice, so fusing never
+  conflicts (the shared wire; two contacts merged by two members; aliases);
+  **capacity** — at most N per slot, per rune or per `i:j` port, optionally through the
+  quotient (one wire per port; one booking per seat; one parent; a double spend);
+  **acyclic** — Kleppmann's move problem, detected rather than undone. Violations are
+  addressed values, like anomalies, and never repaired automatically.
+* **The shared wire, measured both ways.** Wires as runes, rewrites that only add
+  segments and fusion links: the merge reads `a'.1 — c'.1`, which nobody wrote. The
+  single-link encoding is kept as a test that fails the way Maiz measured.
+* **Maiz's four decisions:** wires as runes is normative (no Core edge ids); the
+  quotient lives here and its meaning there; effects, not intentions, because a
+  replayed document would make history mandatory; merge-by-reduction and fusion are one
+  principle — disjoint footprints — before and after a commit.
+* **"Last one wins", honestly.** The replica counter is now a Lamport clock (SPEC §5.7,
+  capped at 2^40 against a hostile peer) and `FieldJoin::Latest` shows the greatest
+  stamp. `core_defaults()` declares `placement` Latest and a mantle's `id` Pick — the
+  standing "which random id?" conflict Maiz reported on 2026-09-19.
+* **Who wrote this.** `writers(place)`: every live value with the replicas whose tags
+  hold it up. A read of what was always there; no format change.
+
+Also from Maiz, and generalized for every transport, including the Android applications
+the family is starting — whose socket layer the author leans toward placing outside this
+library ([integration](/design/integration.md) §7):
+
+* **A stream envelope** (SPEC §11.9) and `StreamReader`: bytes in any pieces, whole frames
+  out, a bad stream refused on its first bytes.
+* **Coalescing** (`Timing::coalesce`), and the burst test found a real waste: the
+  receiver echoed every merged state back. Suppressed; 42 states became at most 25 for
+  200 changes.
+* **A dead link is a new session**, tested; **cautious mode can change on a live link**
+  (`Session::set_fetch`).
+* **Android:** cross-compiles for arm64-v8a with NDK r28 (API 26), library and every test,
+  no warnings. Not yet run on a device.
+
+Where the tree stands: 17 suites (new: `links`), **308 conformance vectors** (from 276:
+link rules, the stream envelope, the Lamport stamp), clean under `-Wall -Wextra` on MinGW
+and on the NDK's clang, zero dependencies. No `CANON_VERSION` change: nothing that names a
+version moved.
+
 ## 2026-09-19 — the sync protocol, built and measured under a hostile network
 
 Message received: `MESSAGE_FOR_VOIDPALABRA_maiz-networking-the-transport-stays-yours-2026-09-18.md`.

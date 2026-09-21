@@ -130,6 +130,53 @@ std::string encode_frame(const Message& m);
 bool decode_frame(const std::string& frame, Message& out, const Limits& limits,
             std::string* why = nullptr, std::string* with_auth_blank = nullptr);
 
+/* ── on a byte stream ─────────────────────────────────────────────────────── */
+/*
+ * A frame does not say where it ends: its payload runs to the end of the frame. A
+ * transport that carries messages whole — a datagram, a WebSocket message, a sealed
+ * box, an in-memory queue — needs nothing more. A transport that carries a BYTE
+ * STREAM — TCP, a pipe, a serial line, Bluetooth RFCOMM — does, and hand-rolled
+ * stream reassembly is where a transport's worst bugs live: a read that returns half
+ * a frame, or two and a half, and code that assumed one.
+ *
+ * So the stream envelope is specified here (SPEC §11.9), once, for every transport:
+ * each frame is preceded by its length as a u32, little-endian. `StreamReader` takes
+ * bytes in whatever pieces the socket returns them and hands back whole frames.
+ *
+ * A stream cannot resynchronize: after a bad length there is no way to find the next
+ * frame boundary. So a bad length BREAKS the reader for good, and the transport must
+ * close the connection and let the session restart over a new one — which the
+ * protocol already handles (a new session nonce), and which is also what a phone's
+ * paused app, a Wi-Fi handover and a sleeping laptop look like. Bad means: longer
+ * than `Limits::max_frame`, shorter than a frame's fixed prefix, or not starting
+ * with the magic — checked as soon as the first bytes arrive, so a peer speaking
+ * another protocol is refused at once rather than after it has sent 64 MB. */
+std::string stream_frame(const std::string& frame);
+
+class StreamReader {
+public:
+    explicit StreamReader(Limits limits = {}) : limits_(limits) {}
+
+    /* Bytes as they arrived, any size, including zero. */
+    void feed(const char* data, std::size_t n);
+    void feed(const std::string& bytes) { feed(bytes.data(), bytes.size()); }
+
+    /* The next whole frame, if one has arrived. Call until it returns false after
+     * every `feed`; then check `broken`. */
+    bool next(std::string& frame);
+
+    bool broken() const { return !why_.empty(); }
+    const std::string& why() const { return why_; }
+    /* Bytes held that are not yet a whole frame. */
+    std::size_t pending() const { return buf_.size() - at_; }
+
+private:
+    Limits limits_;
+    std::string buf_;
+    std::size_t at_ = 0;
+    std::string why_;
+};
+
 /* ── what the host supplies ───────────────────────────────────────────────── */
 
 enum class FetchPolicy {
@@ -165,6 +212,13 @@ struct Timing {
     int content_attempts = 4;       // before a file is reported unavailable from this peer
     Millis presence_ttl = 30000;    // a peer's presence, unrefreshed, expires
     Millis keepalive = 20000;       // say something at least this often, so silence means gone
+    /* The least time between two sends of a CHANGED state. 0 sends every change at
+     * once. A host that changes its document many times a second — an animation, a
+     * reducer stepping every frame, a drag observed per frame — sets ~100 so a burst
+     * leaves as one state per interval, always the newest, instead of one per
+     * change. Nothing is lost: whole-state exchange means the state that goes out
+     * contains every change coalesced into it. */
+    Millis coalesce = 0;
 };
 
 /* ── what comes out ───────────────────────────────────────────────────────── */
@@ -226,6 +280,12 @@ public:
     /* Cautious mode: the host decided to fetch this one. Also retries an unavailable
      * one. */
     Step fetch(const std::string& address, Millis now);
+    /* The user changed the setting on a live link. Turning cautious mode OFF asks
+     * for everything deferred, at once; turning it ON defers everything not yet
+     * asked for. A request already in flight is left to finish — its bytes are on
+     * their way, and refusing them would only waste them. */
+    Step set_fetch(FetchPolicy policy, Millis now);
+    FetchPolicy fetch_policy() const { return host_.fetch; }
     Step close(const std::string& reason, Millis now);
 
     bool is_open() const { return state_ == State::open; }

@@ -29,6 +29,10 @@ namespace {
 constexpr std::size_t kMinIdLength = 16;
 constexpr std::size_t kMaxIdLength = 128;
 constexpr double kMaxCounter = 9007199254740992.0;  // 2^53: exact in a JSON number
+/* How far a Lamport counter will follow what it sees (SPEC §5.7). 2^40 writes is
+ * more than any honest replica makes; a tag claiming more is ignored for counting,
+ * so a hostile or corrupt peer cannot run this replica's counter out of room. */
+constexpr std::uint64_t kLamportCeiling = std::uint64_t(1) << 40;
 
 bool valid_id(const std::string& id, std::string* why) {
     if (id.size() < kMinIdLength || id.size() > kMaxIdLength) {
@@ -102,6 +106,19 @@ bool own_counter(const std::string& tag, const std::string& id, std::uint64_t& n
         n = n * 10 + static_cast<std::uint64_t>(c - '0');
     }
     return true;
+}
+
+/* The largest counter any tag beneath `node` carries, under any writer, up to the
+ * ceiling. What a Lamport counter moves past. */
+std::uint64_t highest_counter(const cJSON* node) {
+    std::set<std::string> tags;
+    collect_all_tags(node, tags);
+    std::uint64_t best = 0;
+    for (const auto& t : tags) {
+        Stamp st = stamp_of(t);
+        if (st.n <= kLamportCeiling && st.n > best) best = st.n;
+    }
+    return best;
 }
 
 using Path = std::vector<std::string>;
@@ -413,7 +430,9 @@ bool Replica::fork(const std::string& new_id, Replica& out, std::string* why) co
     }
     Replica r;
     r.id_ = new_id;
-    r.issued_ = 0;
+    /* Fresh for uniqueness (no tag exists under the new id), and past every counter
+     * in the document for the Lamport order. */
+    r.issued_ = highest_counter(doc_.root);
     r.doc_.root = cJSON_Duplicate(doc_.root, 1);
     r.policy_ = policy_;
     out = std::move(r);
@@ -502,6 +521,11 @@ MergeResult Replica::merge(const cJSON* remote, std::string* why) {
     cJSON* joined = crdt::join_node(doc_.root, remote);
     cJSON_Delete(doc_.root);
     doc_.root = joined;
+    /* Lamport: the next tag this replica mints outranks every write it has now
+     * seen. Still unique (only this replica mints under its id) and still never
+     * decreasing, so nothing in §5.7's identity rules changes. */
+    std::uint64_t seen = highest_counter(remote);
+    if (seen > issued_) issued_ = seen;
     ++revision_;
     return MergeResult::ok;
 }
@@ -520,6 +544,10 @@ std::vector<Conflict> Replica::conflicts() const {
 
 std::vector<Anomaly> Replica::anomalies() const {
     return voidpalabra::anomalies(doc_, policy_);
+}
+
+std::vector<Written> Replica::writers(const Place& place) const {
+    return voidpalabra::writers(doc_, place);
 }
 
 bool Replica::resolve(const Conflict& conflict, std::size_t side, Doc* delta_out) {

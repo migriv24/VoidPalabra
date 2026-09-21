@@ -1,0 +1,1338 @@
+{
+	"kind":	"script",
+	"about":	"§5.7 and §5.10 — the Lamport counter behind every tag, and FieldJoin::Latest reading it",
+	"cases":	[{
+			"name":	"a device that merged first mints past everything it saw",
+			"in":	{
+				"steps":	[{
+						"on":	"A",
+						"observe":	{
+							"mantles":	[{
+									"id":	"m",
+									"name":	"net",
+									"runes":	[{
+											"spirit":	{
+												"id":	"n",
+												"name":	"n"
+											},
+											"glyph":	"agent",
+											"content":	{
+											},
+											"placement":	{
+												"x":	0,
+												"y":	0
+											}
+										}],
+									"layout":	{
+										"edges":	[]
+									}
+								}]
+						}
+					}, {
+						"on":	"A",
+						"observe":	{
+							"mantles":	[{
+									"id":	"m",
+									"name":	"net",
+									"runes":	[{
+											"spirit":	{
+												"id":	"n",
+												"name":	"n"
+											},
+											"glyph":	"agent",
+											"content":	{
+											},
+											"placement":	{
+												"x":	1,
+												"y":	0
+											}
+										}],
+									"layout":	{
+										"edges":	[]
+									}
+								}]
+						}
+					}, {
+						"on":	"A",
+						"observe":	{
+							"mantles":	[{
+									"id":	"m",
+									"name":	"net",
+									"runes":	[{
+											"spirit":	{
+												"id":	"n",
+												"name":	"n"
+											},
+											"glyph":	"agent",
+											"content":	{
+											},
+											"placement":	{
+												"x":	2,
+												"y":	0
+											}
+										}],
+									"layout":	{
+										"edges":	[]
+									}
+								}]
+						}
+					}, {
+						"on":	"A",
+						"observe":	{
+							"mantles":	[{
+									"id":	"m",
+									"name":	"net",
+									"runes":	[{
+											"spirit":	{
+												"id":	"n",
+												"name":	"n"
+											},
+											"glyph":	"agent",
+											"content":	{
+											},
+											"placement":	{
+												"x":	3,
+												"y":	0
+											}
+										}],
+									"layout":	{
+										"edges":	[]
+									}
+								}]
+						}
+					}, {
+						"on":	"A",
+						"observe":	{
+							"mantles":	[{
+									"id":	"m",
+									"name":	"net",
+									"runes":	[{
+											"spirit":	{
+												"id":	"n",
+												"name":	"n"
+											},
+											"glyph":	"agent",
+											"content":	{
+											},
+											"placement":	{
+												"x":	4,
+												"y":	0
+											}
+										}],
+									"layout":	{
+										"edges":	[]
+									}
+								}]
+						}
+					}, {
+						"on":	"A",
+						"observe":	{
+							"mantles":	[{
+									"id":	"m",
+									"name":	"net",
+									"runes":	[{
+											"spirit":	{
+												"id":	"n",
+												"name":	"n"
+											},
+											"glyph":	"agent",
+											"content":	{
+											},
+											"placement":	{
+												"x":	5,
+												"y":	0
+											}
+										}],
+									"layout":	{
+										"edges":	[]
+									}
+								}]
+						}
+					}, {
+						"on":	"A",
+						"observe":	{
+							"mantles":	[{
+									"id":	"m",
+									"name":	"net",
+									"runes":	[{
+											"spirit":	{
+												"id":	"n",
+												"name":	"n"
+											},
+											"glyph":	"agent",
+											"content":	{
+											},
+											"placement":	{
+												"x":	6,
+												"y":	0
+											}
+										}],
+									"layout":	{
+										"edges":	[]
+									}
+								}]
+						}
+					}, {
+						"on":	"A",
+						"observe":	{
+							"mantles":	[{
+									"id":	"m",
+									"name":	"net",
+									"runes":	[{
+											"spirit":	{
+												"id":	"n",
+												"name":	"n"
+											},
+											"glyph":	"agent",
+											"content":	{
+											},
+											"placement":	{
+												"x":	7,
+												"y":	0
+											}
+										}],
+									"layout":	{
+										"edges":	[]
+									}
+								}]
+						}
+					}, {
+						"on":	"A",
+						"observe":	{
+							"mantles":	[{
+									"id":	"m",
+									"name":	"net",
+									"runes":	[{
+											"spirit":	{
+												"id":	"n",
+												"name":	"n"
+											},
+											"glyph":	"agent",
+											"content":	{
+											},
+											"placement":	{
+												"x":	8,
+												"y":	0
+											}
+										}],
+									"layout":	{
+										"edges":	[]
+									}
+								}]
+						}
+					}, {
+						"on":	"A",
+						"observe":	{
+							"mantles":	[{
+									"id":	"m",
+									"name":	"net",
+									"runes":	[{
+											"spirit":	{
+												"id":	"n",
+												"name":	"n"
+											},
+											"glyph":	"agent",
+											"content":	{
+											},
+											"placement":	{
+												"x":	9,
+												"y":	0
+											}
+										}],
+									"layout":	{
+										"edges":	[]
+									}
+								}]
+						}
+					}, {
+						"on":	"A",
+						"observe":	{
+							"mantles":	[{
+									"id":	"m",
+									"name":	"net",
+									"runes":	[{
+											"spirit":	{
+												"id":	"n",
+												"name":	"n"
+											},
+											"glyph":	"agent",
+											"content":	{
+											},
+											"placement":	{
+												"x":	10,
+												"y":	0
+											}
+										}],
+									"layout":	{
+										"edges":	[]
+									}
+								}]
+						}
+					}, {
+						"on":	"A",
+						"observe":	{
+							"mantles":	[{
+									"id":	"m",
+									"name":	"net",
+									"runes":	[{
+											"spirit":	{
+												"id":	"n",
+												"name":	"n"
+											},
+											"glyph":	"agent",
+											"content":	{
+											},
+											"placement":	{
+												"x":	11,
+												"y":	0
+											}
+										}],
+									"layout":	{
+										"edges":	[]
+									}
+								}]
+						}
+					}, {
+						"on":	"B",
+						"merge":	true
+					}, {
+						"on":	"B",
+						"observe":	{
+							"mantles":	[{
+									"id":	"m",
+									"name":	"net",
+									"runes":	[{
+											"spirit":	{
+												"id":	"n",
+												"name":	"n"
+											},
+											"glyph":	"agent",
+											"content":	{
+											},
+											"placement":	{
+												"x":	100,
+												"y":	0
+											}
+										}],
+									"layout":	{
+										"edges":	[]
+									}
+								}]
+						}
+					}],
+				"latest":	[]
+			},
+			"out":	"49816a0127e901d5160f3f916007fb2e019965e3bd6c35dc694521df97fc401b v:4d5300ba91cf0373a2cc90b1b628adf1424c06684f7e43b7167012ffdd09c071"
+		}, {
+			"name":	"concurrent moves after a merge, placement declared Latest",
+			"in":	{
+				"steps":	[{
+						"on":	"A",
+						"observe":	{
+							"mantles":	[{
+									"id":	"m",
+									"name":	"net",
+									"runes":	[{
+											"spirit":	{
+												"id":	"n",
+												"name":	"n"
+											},
+											"glyph":	"agent",
+											"content":	{
+											},
+											"placement":	{
+												"x":	0,
+												"y":	0
+											}
+										}],
+									"layout":	{
+										"edges":	[]
+									}
+								}]
+						}
+					}, {
+						"on":	"A",
+						"observe":	{
+							"mantles":	[{
+									"id":	"m",
+									"name":	"net",
+									"runes":	[{
+											"spirit":	{
+												"id":	"n",
+												"name":	"n"
+											},
+											"glyph":	"agent",
+											"content":	{
+											},
+											"placement":	{
+												"x":	1,
+												"y":	0
+											}
+										}],
+									"layout":	{
+										"edges":	[]
+									}
+								}]
+						}
+					}, {
+						"on":	"A",
+						"observe":	{
+							"mantles":	[{
+									"id":	"m",
+									"name":	"net",
+									"runes":	[{
+											"spirit":	{
+												"id":	"n",
+												"name":	"n"
+											},
+											"glyph":	"agent",
+											"content":	{
+											},
+											"placement":	{
+												"x":	2,
+												"y":	0
+											}
+										}],
+									"layout":	{
+										"edges":	[]
+									}
+								}]
+						}
+					}, {
+						"on":	"A",
+						"observe":	{
+							"mantles":	[{
+									"id":	"m",
+									"name":	"net",
+									"runes":	[{
+											"spirit":	{
+												"id":	"n",
+												"name":	"n"
+											},
+											"glyph":	"agent",
+											"content":	{
+											},
+											"placement":	{
+												"x":	3,
+												"y":	0
+											}
+										}],
+									"layout":	{
+										"edges":	[]
+									}
+								}]
+						}
+					}, {
+						"on":	"A",
+						"observe":	{
+							"mantles":	[{
+									"id":	"m",
+									"name":	"net",
+									"runes":	[{
+											"spirit":	{
+												"id":	"n",
+												"name":	"n"
+											},
+											"glyph":	"agent",
+											"content":	{
+											},
+											"placement":	{
+												"x":	4,
+												"y":	0
+											}
+										}],
+									"layout":	{
+										"edges":	[]
+									}
+								}]
+						}
+					}, {
+						"on":	"A",
+						"observe":	{
+							"mantles":	[{
+									"id":	"m",
+									"name":	"net",
+									"runes":	[{
+											"spirit":	{
+												"id":	"n",
+												"name":	"n"
+											},
+											"glyph":	"agent",
+											"content":	{
+											},
+											"placement":	{
+												"x":	5,
+												"y":	0
+											}
+										}],
+									"layout":	{
+										"edges":	[]
+									}
+								}]
+						}
+					}, {
+						"on":	"A",
+						"observe":	{
+							"mantles":	[{
+									"id":	"m",
+									"name":	"net",
+									"runes":	[{
+											"spirit":	{
+												"id":	"n",
+												"name":	"n"
+											},
+											"glyph":	"agent",
+											"content":	{
+											},
+											"placement":	{
+												"x":	6,
+												"y":	0
+											}
+										}],
+									"layout":	{
+										"edges":	[]
+									}
+								}]
+						}
+					}, {
+						"on":	"A",
+						"observe":	{
+							"mantles":	[{
+									"id":	"m",
+									"name":	"net",
+									"runes":	[{
+											"spirit":	{
+												"id":	"n",
+												"name":	"n"
+											},
+											"glyph":	"agent",
+											"content":	{
+											},
+											"placement":	{
+												"x":	7,
+												"y":	0
+											}
+										}],
+									"layout":	{
+										"edges":	[]
+									}
+								}]
+						}
+					}, {
+						"on":	"A",
+						"observe":	{
+							"mantles":	[{
+									"id":	"m",
+									"name":	"net",
+									"runes":	[{
+											"spirit":	{
+												"id":	"n",
+												"name":	"n"
+											},
+											"glyph":	"agent",
+											"content":	{
+											},
+											"placement":	{
+												"x":	8,
+												"y":	0
+											}
+										}],
+									"layout":	{
+										"edges":	[]
+									}
+								}]
+						}
+					}, {
+						"on":	"A",
+						"observe":	{
+							"mantles":	[{
+									"id":	"m",
+									"name":	"net",
+									"runes":	[{
+											"spirit":	{
+												"id":	"n",
+												"name":	"n"
+											},
+											"glyph":	"agent",
+											"content":	{
+											},
+											"placement":	{
+												"x":	9,
+												"y":	0
+											}
+										}],
+									"layout":	{
+										"edges":	[]
+									}
+								}]
+						}
+					}, {
+						"on":	"A",
+						"observe":	{
+							"mantles":	[{
+									"id":	"m",
+									"name":	"net",
+									"runes":	[{
+											"spirit":	{
+												"id":	"n",
+												"name":	"n"
+											},
+											"glyph":	"agent",
+											"content":	{
+											},
+											"placement":	{
+												"x":	10,
+												"y":	0
+											}
+										}],
+									"layout":	{
+										"edges":	[]
+									}
+								}]
+						}
+					}, {
+						"on":	"A",
+						"observe":	{
+							"mantles":	[{
+									"id":	"m",
+									"name":	"net",
+									"runes":	[{
+											"spirit":	{
+												"id":	"n",
+												"name":	"n"
+											},
+											"glyph":	"agent",
+											"content":	{
+											},
+											"placement":	{
+												"x":	11,
+												"y":	0
+											}
+										}],
+									"layout":	{
+										"edges":	[]
+									}
+								}]
+						}
+					}, {
+						"on":	"B",
+						"merge":	true
+					}, {
+						"on":	"A",
+						"observe":	{
+							"mantles":	[{
+									"id":	"m",
+									"name":	"net",
+									"runes":	[{
+											"spirit":	{
+												"id":	"n",
+												"name":	"n"
+											},
+											"glyph":	"agent",
+											"content":	{
+											},
+											"placement":	{
+												"x":	200,
+												"y":	0
+											}
+										}],
+									"layout":	{
+										"edges":	[]
+									}
+								}]
+						}
+					}, {
+						"on":	"B",
+						"observe":	{
+							"mantles":	[{
+									"id":	"m",
+									"name":	"net",
+									"runes":	[{
+											"spirit":	{
+												"id":	"n",
+												"name":	"n"
+											},
+											"glyph":	"agent",
+											"content":	{
+											},
+											"placement":	{
+												"x":	300,
+												"y":	0
+											}
+										}],
+									"layout":	{
+										"edges":	[]
+									}
+								}]
+						}
+					}],
+				"latest":	["placement"]
+			},
+			"out":	"e465d4b050e6652ad52f7cba22a6e6fdeaacd3146125eac4779df5f61a419c35 v:6c79032eef5926ed8efdb1cc4a76a0fbdcaa071769351c64e5b62107474e0c1e"
+		}, {
+			"name":	"the same moves with placement undeclared — must DIFFER (the conflict shows its first value)",
+			"in":	{
+				"steps":	[{
+						"on":	"A",
+						"observe":	{
+							"mantles":	[{
+									"id":	"m",
+									"name":	"net",
+									"runes":	[{
+											"spirit":	{
+												"id":	"n",
+												"name":	"n"
+											},
+											"glyph":	"agent",
+											"content":	{
+											},
+											"placement":	{
+												"x":	0,
+												"y":	0
+											}
+										}],
+									"layout":	{
+										"edges":	[]
+									}
+								}]
+						}
+					}, {
+						"on":	"A",
+						"observe":	{
+							"mantles":	[{
+									"id":	"m",
+									"name":	"net",
+									"runes":	[{
+											"spirit":	{
+												"id":	"n",
+												"name":	"n"
+											},
+											"glyph":	"agent",
+											"content":	{
+											},
+											"placement":	{
+												"x":	1,
+												"y":	0
+											}
+										}],
+									"layout":	{
+										"edges":	[]
+									}
+								}]
+						}
+					}, {
+						"on":	"A",
+						"observe":	{
+							"mantles":	[{
+									"id":	"m",
+									"name":	"net",
+									"runes":	[{
+											"spirit":	{
+												"id":	"n",
+												"name":	"n"
+											},
+											"glyph":	"agent",
+											"content":	{
+											},
+											"placement":	{
+												"x":	2,
+												"y":	0
+											}
+										}],
+									"layout":	{
+										"edges":	[]
+									}
+								}]
+						}
+					}, {
+						"on":	"A",
+						"observe":	{
+							"mantles":	[{
+									"id":	"m",
+									"name":	"net",
+									"runes":	[{
+											"spirit":	{
+												"id":	"n",
+												"name":	"n"
+											},
+											"glyph":	"agent",
+											"content":	{
+											},
+											"placement":	{
+												"x":	3,
+												"y":	0
+											}
+										}],
+									"layout":	{
+										"edges":	[]
+									}
+								}]
+						}
+					}, {
+						"on":	"A",
+						"observe":	{
+							"mantles":	[{
+									"id":	"m",
+									"name":	"net",
+									"runes":	[{
+											"spirit":	{
+												"id":	"n",
+												"name":	"n"
+											},
+											"glyph":	"agent",
+											"content":	{
+											},
+											"placement":	{
+												"x":	4,
+												"y":	0
+											}
+										}],
+									"layout":	{
+										"edges":	[]
+									}
+								}]
+						}
+					}, {
+						"on":	"A",
+						"observe":	{
+							"mantles":	[{
+									"id":	"m",
+									"name":	"net",
+									"runes":	[{
+											"spirit":	{
+												"id":	"n",
+												"name":	"n"
+											},
+											"glyph":	"agent",
+											"content":	{
+											},
+											"placement":	{
+												"x":	5,
+												"y":	0
+											}
+										}],
+									"layout":	{
+										"edges":	[]
+									}
+								}]
+						}
+					}, {
+						"on":	"A",
+						"observe":	{
+							"mantles":	[{
+									"id":	"m",
+									"name":	"net",
+									"runes":	[{
+											"spirit":	{
+												"id":	"n",
+												"name":	"n"
+											},
+											"glyph":	"agent",
+											"content":	{
+											},
+											"placement":	{
+												"x":	6,
+												"y":	0
+											}
+										}],
+									"layout":	{
+										"edges":	[]
+									}
+								}]
+						}
+					}, {
+						"on":	"A",
+						"observe":	{
+							"mantles":	[{
+									"id":	"m",
+									"name":	"net",
+									"runes":	[{
+											"spirit":	{
+												"id":	"n",
+												"name":	"n"
+											},
+											"glyph":	"agent",
+											"content":	{
+											},
+											"placement":	{
+												"x":	7,
+												"y":	0
+											}
+										}],
+									"layout":	{
+										"edges":	[]
+									}
+								}]
+						}
+					}, {
+						"on":	"A",
+						"observe":	{
+							"mantles":	[{
+									"id":	"m",
+									"name":	"net",
+									"runes":	[{
+											"spirit":	{
+												"id":	"n",
+												"name":	"n"
+											},
+											"glyph":	"agent",
+											"content":	{
+											},
+											"placement":	{
+												"x":	8,
+												"y":	0
+											}
+										}],
+									"layout":	{
+										"edges":	[]
+									}
+								}]
+						}
+					}, {
+						"on":	"A",
+						"observe":	{
+							"mantles":	[{
+									"id":	"m",
+									"name":	"net",
+									"runes":	[{
+											"spirit":	{
+												"id":	"n",
+												"name":	"n"
+											},
+											"glyph":	"agent",
+											"content":	{
+											},
+											"placement":	{
+												"x":	9,
+												"y":	0
+											}
+										}],
+									"layout":	{
+										"edges":	[]
+									}
+								}]
+						}
+					}, {
+						"on":	"A",
+						"observe":	{
+							"mantles":	[{
+									"id":	"m",
+									"name":	"net",
+									"runes":	[{
+											"spirit":	{
+												"id":	"n",
+												"name":	"n"
+											},
+											"glyph":	"agent",
+											"content":	{
+											},
+											"placement":	{
+												"x":	10,
+												"y":	0
+											}
+										}],
+									"layout":	{
+										"edges":	[]
+									}
+								}]
+						}
+					}, {
+						"on":	"A",
+						"observe":	{
+							"mantles":	[{
+									"id":	"m",
+									"name":	"net",
+									"runes":	[{
+											"spirit":	{
+												"id":	"n",
+												"name":	"n"
+											},
+											"glyph":	"agent",
+											"content":	{
+											},
+											"placement":	{
+												"x":	11,
+												"y":	0
+											}
+										}],
+									"layout":	{
+										"edges":	[]
+									}
+								}]
+						}
+					}, {
+						"on":	"B",
+						"merge":	true
+					}, {
+						"on":	"A",
+						"observe":	{
+							"mantles":	[{
+									"id":	"m",
+									"name":	"net",
+									"runes":	[{
+											"spirit":	{
+												"id":	"n",
+												"name":	"n"
+											},
+											"glyph":	"agent",
+											"content":	{
+											},
+											"placement":	{
+												"x":	200,
+												"y":	0
+											}
+										}],
+									"layout":	{
+										"edges":	[]
+									}
+								}]
+						}
+					}, {
+						"on":	"B",
+						"observe":	{
+							"mantles":	[{
+									"id":	"m",
+									"name":	"net",
+									"runes":	[{
+											"spirit":	{
+												"id":	"n",
+												"name":	"n"
+											},
+											"glyph":	"agent",
+											"content":	{
+											},
+											"placement":	{
+												"x":	300,
+												"y":	0
+											}
+										}],
+									"layout":	{
+										"edges":	[]
+									}
+								}]
+						}
+					}],
+				"latest":	[]
+			},
+			"out":	"e465d4b050e6652ad52f7cba22a6e6fdeaacd3146125eac4779df5f61a419c35 v:d6818739bc9d0027d04fa98a080b27ea13ddc130d20db1bbdb829eca8b3be214"
+		}, {
+			"name":	"a device that never merged loses to one that saw more",
+			"in":	{
+				"steps":	[{
+						"on":	"A",
+						"observe":	{
+							"mantles":	[{
+									"id":	"m",
+									"name":	"net",
+									"runes":	[{
+											"spirit":	{
+												"id":	"n",
+												"name":	"n"
+											},
+											"glyph":	"agent",
+											"content":	{
+											},
+											"placement":	{
+												"x":	0,
+												"y":	0
+											}
+										}],
+									"layout":	{
+										"edges":	[]
+									}
+								}]
+						}
+					}, {
+						"on":	"A",
+						"observe":	{
+							"mantles":	[{
+									"id":	"m",
+									"name":	"net",
+									"runes":	[{
+											"spirit":	{
+												"id":	"n",
+												"name":	"n"
+											},
+											"glyph":	"agent",
+											"content":	{
+											},
+											"placement":	{
+												"x":	1,
+												"y":	0
+											}
+										}],
+									"layout":	{
+										"edges":	[]
+									}
+								}]
+						}
+					}, {
+						"on":	"A",
+						"observe":	{
+							"mantles":	[{
+									"id":	"m",
+									"name":	"net",
+									"runes":	[{
+											"spirit":	{
+												"id":	"n",
+												"name":	"n"
+											},
+											"glyph":	"agent",
+											"content":	{
+											},
+											"placement":	{
+												"x":	2,
+												"y":	0
+											}
+										}],
+									"layout":	{
+										"edges":	[]
+									}
+								}]
+						}
+					}, {
+						"on":	"A",
+						"observe":	{
+							"mantles":	[{
+									"id":	"m",
+									"name":	"net",
+									"runes":	[{
+											"spirit":	{
+												"id":	"n",
+												"name":	"n"
+											},
+											"glyph":	"agent",
+											"content":	{
+											},
+											"placement":	{
+												"x":	3,
+												"y":	0
+											}
+										}],
+									"layout":	{
+										"edges":	[]
+									}
+								}]
+						}
+					}, {
+						"on":	"A",
+						"observe":	{
+							"mantles":	[{
+									"id":	"m",
+									"name":	"net",
+									"runes":	[{
+											"spirit":	{
+												"id":	"n",
+												"name":	"n"
+											},
+											"glyph":	"agent",
+											"content":	{
+											},
+											"placement":	{
+												"x":	4,
+												"y":	0
+											}
+										}],
+									"layout":	{
+										"edges":	[]
+									}
+								}]
+						}
+					}, {
+						"on":	"A",
+						"observe":	{
+							"mantles":	[{
+									"id":	"m",
+									"name":	"net",
+									"runes":	[{
+											"spirit":	{
+												"id":	"n",
+												"name":	"n"
+											},
+											"glyph":	"agent",
+											"content":	{
+											},
+											"placement":	{
+												"x":	5,
+												"y":	0
+											}
+										}],
+									"layout":	{
+										"edges":	[]
+									}
+								}]
+						}
+					}, {
+						"on":	"A",
+						"observe":	{
+							"mantles":	[{
+									"id":	"m",
+									"name":	"net",
+									"runes":	[{
+											"spirit":	{
+												"id":	"n",
+												"name":	"n"
+											},
+											"glyph":	"agent",
+											"content":	{
+											},
+											"placement":	{
+												"x":	6,
+												"y":	0
+											}
+										}],
+									"layout":	{
+										"edges":	[]
+									}
+								}]
+						}
+					}, {
+						"on":	"A",
+						"observe":	{
+							"mantles":	[{
+									"id":	"m",
+									"name":	"net",
+									"runes":	[{
+											"spirit":	{
+												"id":	"n",
+												"name":	"n"
+											},
+											"glyph":	"agent",
+											"content":	{
+											},
+											"placement":	{
+												"x":	7,
+												"y":	0
+											}
+										}],
+									"layout":	{
+										"edges":	[]
+									}
+								}]
+						}
+					}, {
+						"on":	"A",
+						"observe":	{
+							"mantles":	[{
+									"id":	"m",
+									"name":	"net",
+									"runes":	[{
+											"spirit":	{
+												"id":	"n",
+												"name":	"n"
+											},
+											"glyph":	"agent",
+											"content":	{
+											},
+											"placement":	{
+												"x":	8,
+												"y":	0
+											}
+										}],
+									"layout":	{
+										"edges":	[]
+									}
+								}]
+						}
+					}, {
+						"on":	"A",
+						"observe":	{
+							"mantles":	[{
+									"id":	"m",
+									"name":	"net",
+									"runes":	[{
+											"spirit":	{
+												"id":	"n",
+												"name":	"n"
+											},
+											"glyph":	"agent",
+											"content":	{
+											},
+											"placement":	{
+												"x":	9,
+												"y":	0
+											}
+										}],
+									"layout":	{
+										"edges":	[]
+									}
+								}]
+						}
+					}, {
+						"on":	"A",
+						"observe":	{
+							"mantles":	[{
+									"id":	"m",
+									"name":	"net",
+									"runes":	[{
+											"spirit":	{
+												"id":	"n",
+												"name":	"n"
+											},
+											"glyph":	"agent",
+											"content":	{
+											},
+											"placement":	{
+												"x":	10,
+												"y":	0
+											}
+										}],
+									"layout":	{
+										"edges":	[]
+									}
+								}]
+						}
+					}, {
+						"on":	"A",
+						"observe":	{
+							"mantles":	[{
+									"id":	"m",
+									"name":	"net",
+									"runes":	[{
+											"spirit":	{
+												"id":	"n",
+												"name":	"n"
+											},
+											"glyph":	"agent",
+											"content":	{
+											},
+											"placement":	{
+												"x":	11,
+												"y":	0
+											}
+										}],
+									"layout":	{
+										"edges":	[]
+									}
+								}]
+						}
+					}, {
+						"on":	"B",
+						"observe":	{
+							"mantles":	[{
+									"id":	"m",
+									"name":	"net",
+									"runes":	[{
+											"spirit":	{
+												"id":	"n",
+												"name":	"n"
+											},
+											"glyph":	"agent",
+											"content":	{
+											},
+											"placement":	{
+												"x":	300,
+												"y":	0
+											}
+										}],
+									"layout":	{
+										"edges":	[]
+									}
+								}]
+						}
+					}],
+				"latest":	["placement"]
+			},
+			"out":	"a0b3725ffd9b554e712fb8e4ac255431d7d05b74deb153424a2974618da82297 v:a371700d02784e1fa0a8384c646bef433d19f585cd598faaf381e6da117a8cf6"
+		}]
+}

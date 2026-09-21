@@ -58,6 +58,9 @@ optional and defaults to SPEC §4.4's default.
 | `merge_anomalies` | `{base, a, b}` — A observes base, B takes it, A goes to `a` while B goes to `b`, they exchange | the anomaly hashes (both replicas must agree), or `none` |
 | `references` | `{fields, state}` | `address mantle/rune/glyph/field` per reference, `;`-joined, or `none` |
 | `frame` | a message as JSON, or `{hex}` | hex of the frame; or `valid` / `refused` |
+| `stream` | `{hex}`: bytes as they arrived on a stream | each delivered frame's hex, `,`-joined (or `none`), then `+partial` if bytes remain; or `refused` |
+| `links` | `{rules: {equivalence, capacity, acyclic}, state}` | each class as `rep=member,…` `;`-joined, `\|`, the §5.11 violation hashes — `none` for either part |
+| `script` | `{steps: [{on, observe} \| {on, merge}], latest}` — two replicas with fixed ids | SHA-256 of the canonical replica document (pins the Lamport tags), a space, the version name shown with `latest` fields under §5.10 — both replicas must agree |
 | `merged_slice` | `[state_a, state_b]` | the version name of the merged, flattened slice |
 | `replica_doc` | `{id, observe: [state, …]}` | hex of the replica document's canonical bytes, or `refused` |
 | `utterance` | an utterance object | its §8.2 name (`u:…`) |
@@ -139,6 +142,9 @@ A vector with no relation to any other vector only pins a number.
 | `20-merge-anomalies.json` | §5.8 — rules each device kept that the merge broke |
 | `21-references.json` | §5.9 — what a document names but does not hold |
 | `22-frames.json` | §11 — the sync frame: what is written, and what must be refused |
+| `23-links.json` | §5.11 — declared link rules: the equivalence quotient, capacity per slot, acyclicity |
+| `24-stream.json` | §11.9 — the stream envelope, and what a stream reader must refuse |
+| `25-lamport-and-latest.json` | §5.7, §5.10 — the Lamport counter behind every tag, and `latest` reading it |
 
 
 ## The §8 vectors, and why `ingest` reports a cut rather than a count

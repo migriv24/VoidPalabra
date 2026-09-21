@@ -25,6 +25,7 @@
 #include "voidpalabra/utterance.hpp"
 #include "voidpalabra/replica.hpp"
 #include "voidpalabra/references.hpp"
+#include "voidpalabra/links.hpp"
 #include "voidpalabra/sync.hpp"
 
 #include "cJSON.h"
@@ -246,6 +247,118 @@ bool evaluate(const std::string& kind, const cJSON* c, std::string& out,
             out = to_hex_bytes(sync::encode_frame(m));
             return true;
         }
+        if (kind == "links") {
+            /* `in` is {"rules": {equivalence, capacity:[{name, relation, slot, max,
+             * through_equivalence}], acyclic}, "state": ...}. `out` is every
+             * non-trivial class as "rep=member,member" joined by ";", then "|", then
+             * the violation hashes (SPEC §5.11), or "none" for either part. */
+            const cJSON* rj = cJSON_GetObjectItemCaseSensitive(const_cast<cJSON*>(input), "rules");
+            const cJSON* state = cJSON_GetObjectItemCaseSensitive(const_cast<cJSON*>(input), "state");
+            if (!rj || !state) { why = "links needs {rules, state}"; return false; }
+            LinkRules rules;
+            auto strings = [&](const char* k, std::vector<std::string>& into) {
+                const cJSON* a = cJSON_GetObjectItemCaseSensitive(const_cast<cJSON*>(rj), k);
+                for (const cJSON* s = a ? a->child : nullptr; s; s = s->next)
+                    if (cJSON_IsString(s)) into.push_back(s->valuestring);
+            };
+            strings("equivalence", rules.equivalence);
+            strings("acyclic", rules.acyclic);
+            const cJSON* caps = cJSON_GetObjectItemCaseSensitive(const_cast<cJSON*>(rj), "capacity");
+            for (const cJSON* c2 = caps ? caps->child : nullptr; c2; c2 = c2->next) {
+                Capacity cap;
+                auto s = [&](const char* k) {
+                    const cJSON* v = cJSON_GetObjectItemCaseSensitive(const_cast<cJSON*>(c2), k);
+                    return v && cJSON_IsString(v) ? std::string(v->valuestring) : std::string();
+                };
+                cap.name = s("name");
+                if (!s("relation").empty()) cap.relation = s("relation");
+                static const std::pair<const char*, Slot> slots[] = {
+                    {"to", Slot::to}, {"from", Slot::from}, {"ends", Slot::ends}, {"ports", Slot::ports},
+                    {"from_port", Slot::from_port}, {"to_port", Slot::to_port}};
+                bool known = false;
+                for (const auto& sl : slots) if (s("slot") == sl.first) { cap.slot = sl.second; known = true; }
+                if (!known) { why = "unknown slot"; return false; }
+                const cJSON* mx = cJSON_GetObjectItemCaseSensitive(const_cast<cJSON*>(c2), "max");
+                if (mx && cJSON_IsNumber(mx)) cap.max = static_cast<std::size_t>(mx->valuedouble);
+                cap.through_equivalence = cJSON_IsTrue(
+                    cJSON_GetObjectItemCaseSensitive(const_cast<cJSON*>(c2), "through_equivalence"));
+                rules.capacity.push_back(cap);
+            }
+            std::string classes;
+            for (const auto& cls : quotient(state, rules).classes) {
+                if (!classes.empty()) classes += ";";
+                classes += cls.front().mantle + "/" + cls.front().id + "=";
+                for (std::size_t i = 0; i < cls.size(); ++i)
+                    classes += (i ? "," : "") + cls[i].mantle + "/" + cls[i].id;
+            }
+            std::string vs;
+            for (const Violation& v : check_links(state, rules)) vs += to_hex(v.hash());
+            out = (classes.empty() ? "none" : classes) + "|" + (vs.empty() ? "none" : vs);
+            return true;
+        }
+        if (kind == "stream") {
+            /* `in` is {"hex": bytes as they arrived on a stream}. `out` is each frame
+             * the stream envelope delivers, as hex, joined by ","; then "+partial" if
+             * bytes are left over; "none" if nothing whole arrived; or "refused" if
+             * the stream is broken (SPEC §11.9). */
+            const cJSON* hexin = cJSON_GetObjectItemCaseSensitive(const_cast<cJSON*>(input), "hex");
+            if (!hexin || !cJSON_IsString(hexin)) { why = "stream needs {hex}"; return false; }
+            std::string bytes, h = hexin->valuestring;
+            for (std::size_t i = 0; i + 1 < h.size(); i += 2)
+                bytes.push_back(static_cast<char>(std::stoi(h.substr(i, 2), nullptr, 16)));
+            sync::StreamReader r;
+            r.feed(bytes);
+            std::string acc, f;
+            while (r.next(f)) acc += (acc.empty() ? "" : ",") + to_hex_bytes(f);
+            if (r.broken()) { out = "refused"; return true; }
+            if (acc.empty()) acc = "none";
+            if (r.pending()) acc += "+partial";
+            out = acc;
+            return true;
+        }
+        if (kind == "script") {
+            /* `in` is {"steps": [{"on": "A"|"B", "observe": state} |
+             * {"on": "A"|"B", "merge": true}], "latest": [field keys]}. Two replicas
+             * with fixed ids; "merge" takes the other's document. At the end each takes
+             * the other's once more. `out` is the SHA-256 of the canonical enriched
+             * document — which pins the tag each write was minted under, and so the
+             * Lamport rule (SPEC §5.7) — then " ", then the version name of what is
+             * shown with the listed fields under FieldJoin::Latest (§5.10). Both
+             * replicas must agree on both. */
+            const cJSON* steps = cJSON_GetObjectItemCaseSensitive(const_cast<cJSON*>(input), "steps");
+            if (!steps || !cJSON_IsArray(steps)) { why = "script needs {steps}"; return false; }
+            Replica ra, rb;
+            Replica::create("vector-script-A-000001", ra);
+            Replica::create("vector-script-B-000001", rb);
+            for (const cJSON* s = steps->child; s; s = s->next) {
+                const cJSON* on = cJSON_GetObjectItemCaseSensitive(const_cast<cJSON*>(s), "on");
+                bool is_a = on && cJSON_IsString(on) && std::strcmp(on->valuestring, "A") == 0;
+                Replica& me = is_a ? ra : rb;
+                Replica& other = is_a ? rb : ra;
+                const cJSON* st = cJSON_GetObjectItemCaseSensitive(const_cast<cJSON*>(s), "observe");
+                if (st) {
+                    if (!me.observe(st).ok) { out = "refused"; return true; }
+                } else if (me.merge(other.doc()) != MergeResult::ok) {
+                    out = "refused";
+                    return true;
+                }
+            }
+            ra.merge(rb.doc());
+            rb.merge(ra.doc());
+            JoinPolicy pol;
+            const cJSON* latest = cJSON_GetObjectItemCaseSensitive(const_cast<cJSON*>(input), "latest");
+            for (const cJSON* f = latest ? latest->child : nullptr; f; f = f->next)
+                if (cJSON_IsString(f)) pol.fields[f->valuestring] = FieldJoin::Latest;
+            ra.set_policy(pol);
+            rb.set_policy(pol);
+            std::string da = to_hex(sha256(canon_doc(ra.doc())));
+            std::string db = to_hex(sha256(canon_doc(rb.doc())));
+            Doc fa = ra.flatten(), fb = rb.flatten();
+            std::string sa = version_name(fa.root), sb = version_name(fb.root);
+            if (da != db || sa != sb) { why = "the two replicas disagree"; return false; }
+            out = da + " " + sa;
+            return true;
+        }
         if (kind == "utterance") {
             /* `in` is an utterance object. `out` is its content address, which is
              * the one thing two implementations must agree on before anything
@@ -464,6 +577,9 @@ int main(int argc, char** argv) {
         "conformance/cases/20-merge-anomalies.json",
         "conformance/cases/21-references.json",
         "conformance/cases/22-frames.json",
+        "conformance/cases/23-links.json",
+        "conformance/cases/24-stream.json",
+        "conformance/cases/25-lamport-and-latest.json",
     };
 
     std::printf("Void Palabra conformance — SPEC.md v%d%s\n\n", kCanonVersion,

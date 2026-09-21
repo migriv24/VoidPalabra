@@ -20,7 +20,9 @@ automatic sync needed deletions to stay deleted, and [anomaly](/concepts/anomaly
 and [content reference](/concepts/content-reference.md) on 2026-09-18 — what a merge
 breaks that no device broke, and what a document names that it does not hold —
 and the [sync session](/concepts/sync-session.md) on 2026-09-19, the pure state machine two
-peers run to converge. The first four name **state**; the
+peers run to converge, and [concurrent structure](/concepts/concurrent-structure.md) on
+2026-09-20 — why two people rewriting one graph, tree or booking sheet need no
+coordination if their changes have disjoint footprints. The first four name **state**; the
 next three name **change**; the replica is what keeps a device's state between
 exchanges.
 
@@ -89,6 +91,7 @@ meet at two data shapes and nothing else.
 * [Anomaly](/concepts/anomaly.md) - a rule every device kept that a merge broke — duplicate names, broken links, a type removed under its runes
 * [Content reference](/concepts/content-reference.md) - what a document names but does not hold; who says what is missing, who fetches, who checks
 * [Sync session](/concepts/sync-session.md) - the protocol as a pure state machine: frames and time in, frames and events out; measured under a hostile network
+* [Concurrent structure](/concepts/concurrent-structure.md) - concurrent rewrites of one structure: equivalence, capacity and acyclicity as declared link rules; the Lamport stamp behind "last one wins"; who wrote what
 * [Compute](/concepts/compute.md) - naming, routing and recording compute across peers; prompts as addressable projections
 
 # Design — the rationale
