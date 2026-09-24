@@ -111,6 +111,15 @@ endif()
 # fetched at build time.
 option(VOIDPALABRA_RETICULUM
        "Build voidpalabra_reticulum (Reticulum networking, vendored microReticulum)" ${VOIDPALABRA_TOP_LEVEL})
+# GCC and Clang only. The vendored Crypto library writes its rotations as GCC
+# statement expressions (`({ ... })`), which MSVC cannot parse. Found
+# 2026-09-24 by Void Maiz's windows-latest CI, the first MSVC build to see it.
+# A consumer that turned it on still configures: it just gets no companion, and
+# checks `TARGET voidpalabra_reticulum` (as Void Maiz does).
+if(VOIDPALABRA_RETICULUM AND MSVC)
+  message(STATUS "voidpalabra_reticulum: not built with MSVC (the vendored Crypto needs GCC or Clang)")
+  set(VOIDPALABRA_RETICULUM OFF)
+endif()
 if(VOIDPALABRA_RETICULUM)
   set(VPR ${CMAKE_CURRENT_SOURCE_DIR}/vendor/reticulum)
   file(GLOB VPR_CRYPTO ${VPR}/Crypto/*.cpp)

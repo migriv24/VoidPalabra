@@ -70,3 +70,7 @@ enough. The details are in `okf/concepts/reticulum.md` under "measured".
   the link closed). We never send compressed ones; a peer talking to a Void
   device must not either.
 - **Only single-segment Resources** (up to 16 MiB), which bounds one message.
+- **Not with MSVC.** `Crypto/` writes its rotations as GCC statement
+  expressions. The CMake option switches itself off under MSVC, and consumers
+  check `TARGET voidpalabra_reticulum`. GCC and Clang build it everywhere:
+  MinGW, Linux, macOS and the Android NDK.
