@@ -101,6 +101,63 @@ endif()
 # drop ours; see README.md. Nothing in the public header mentions cJSON beyond a
 # forward declaration, so the two never conflict at the interface.
 
+# ── voidpalabra_reticulum: the family's network (okf/concepts/reticulum.md) ──
+#
+# Decided by the author 2026-09-23: all device-to-device networking runs over
+# Reticulum, with Palabra as its Void translation. It is an OPTIONAL companion:
+# the `voidpalabra` target above does not link it and stays zero-dependency.
+# microReticulum and its dependencies are vendored as pinned source with our
+# patches (vendor/reticulum/VENDORED.md, tools/patch_reticulum.py). Nothing is
+# fetched at build time.
+option(VOIDPALABRA_RETICULUM
+       "Build voidpalabra_reticulum (Reticulum networking, vendored microReticulum)" ${VOIDPALABRA_TOP_LEVEL})
+if(VOIDPALABRA_RETICULUM)
+  set(VPR ${CMAKE_CURRENT_SOURCE_DIR}/vendor/reticulum)
+  file(GLOB VPR_CRYPTO ${VPR}/Crypto/*.cpp)
+  file(GLOB_RECURSE VPR_RNS ${VPR}/microReticulum/src/*.cpp ${VPR}/microReticulum/src/*.c)
+  add_library(voidpalabra_rns_vendor STATIC ${VPR_CRYPTO} ${VPR_RNS})
+  # microReticulum is C++17 upstream; it is compiled as such, and only our own
+  # code around it is C++20.
+  set_target_properties(voidpalabra_rns_vendor PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED ON)
+  target_include_directories(voidpalabra_rns_vendor SYSTEM PUBLIC
+    ${VPR}/microReticulum/src ${VPR}/Crypto ${VPR}/ArduinoJson/src ${VPR}/MsgPack
+    ${VPR}/ArxContainer ${VPR}/ArxTypeTraits ${VPR}/DebugLog ${VPR}/microStore/include)
+  # PUBLIC, as upstream's CMake does, so every translation unit that includes
+  # its headers agrees on its types.
+  #
+  # RNS_PERSIST_PATHS / _KNOWN_DESTINATIONS / _HASHLIST are deliberately 0
+  # (upstream's Type.h turns each ON when it is left undefined, so it must be
+  # written out as 0).
+  # With them on, microReticulum initializes its file-backed stores only when
+  # TRANSPORT mode is enabled (Transport.cpp), so an ordinary node - an app, not
+  # a router - has uninitialized stores, cannot remember any identity it hears
+  # ("remember: failed to store identity") and can never open a link. Found
+  # 2026-09-23 against the Python reference. Off, the stores are in memory:
+  # paths and known peers are re-learned from announces after a restart, and our
+  # own identity file (Node::start) persists regardless.
+  # The most detail microReticulum's log CAN print (0 none .. 6 verbose, 7 debug,
+  # 8 trace), fixed at compile time; Options::log_level picks within it at run
+  # time. Set explicitly, since upstream #warns in every file that includes its
+  # log header otherwise. 7 is how the lost-proof stall was found (2026-09-24).
+  set(VOIDPALABRA_RNS_LOG_LEVEL 6 CACHE STRING "microReticulum's compiled-in log ceiling (0-9)")
+  target_compile_definitions(voidpalabra_rns_vendor PUBLIC NATIVE USTORE_USE_UNIVERSALFS RNS_USE_FS
+    RNS_PERSIST_PATHS=0 RNS_PERSIST_KNOWN_DESTINATIONS=0 RNS_PERSIST_HASHLIST=0
+    RNS_LOG_LEVEL=${VOIDPALABRA_RNS_LOG_LEVEL})
+  if(NOT MSVC)
+    target_compile_options(voidpalabra_rns_vendor PRIVATE -w) # third-party: its warnings are not ours to fix
+  endif()
+  if(WIN32)
+    target_link_libraries(voidpalabra_rns_vendor PUBLIC ws2_32)
+  endif()
+
+  add_library(voidpalabra_reticulum STATIC src/reticulum/node.cpp src/reticulum/udp.cpp
+    src/reticulum/sync_links.cpp)
+  add_library(voidpalabra::reticulum ALIAS voidpalabra_reticulum)
+  target_include_directories(voidpalabra_reticulum PUBLIC include PRIVATE src/reticulum)
+  target_link_libraries(voidpalabra_reticulum PUBLIC voidpalabra PRIVATE voidpalabra_rns_vendor)
+  target_compile_features(voidpalabra_reticulum PUBLIC cxx_std_20)
+endif()
+
 if(NOT VOIDPALABRA_BUILD_TESTS)
   return()
 endif()
@@ -264,3 +321,40 @@ if(PALABRA_PYTHON)
   add_test(NAME okf COMMAND ${PALABRA_PYTHON} ${CMAKE_CURRENT_SOURCE_DIR}/tools/check_okf.py
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 endif()
+
+# ── Reticulum: the peer program and the interop harness ─────────────────────
+# One Reticulum per process (okf/concepts/reticulum.md), so the two-peer tests
+# are processes driven by a Python harness, which can also run the official
+# Python Reticulum as the other peer. Without `pip install rns`, the tests that
+# need it report SKIP (exit 77) rather than fail; the C++-to-C++ sync test
+# needs only Python itself.
+if(VOIDPALABRA_RETICULUM AND VOIDPALABRA_BUILD_TESTS)
+  add_executable(voidpalabra_rns_peer tests/reticulum/peer.cpp)
+  target_include_directories(voidpalabra_rns_peer PRIVATE vendor)
+  target_link_libraries(voidpalabra_rns_peer PRIVATE voidpalabra_reticulum)
+  # A harness starts this program with ITS PATH, and on Windows that PATH can
+  # hold another MinGW's libstdc++ (Git ships one): the child then dies at load
+  # with STATUS_ENTRYPOINT_NOT_FOUND (0xC0000139), which is what the first run
+  # did. A static runtime has nothing to mismatch.
+  if(MINGW)
+    target_link_options(voidpalabra_rns_peer PRIVATE -static)
+  endif()
+  find_package(Python3 COMPONENTS Interpreter)
+  if(Python3_Interpreter_FOUND)
+    add_test(NAME reticulum_vectors COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/reticulum/interop.py $<TARGET_FILE:voidpalabra_rns_peer> vectors)
+    add_test(NAME reticulum_interop_py_server COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/reticulum/interop.py $<TARGET_FILE:voidpalabra_rns_peer> py-echo)
+    add_test(NAME reticulum_interop_cpp_server COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/reticulum/interop.py $<TARGET_FILE:voidpalabra_rns_peer> cpp-echo)
+    add_test(NAME reticulum_sync COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/reticulum/interop.py $<TARGET_FILE:voidpalabra_rns_peer> sync)
+    add_test(NAME reticulum_big_py COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/reticulum/interop.py $<TARGET_FILE:voidpalabra_rns_peer> big-py)
+    add_test(NAME reticulum_big_cpp COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/reticulum/interop.py $<TARGET_FILE:voidpalabra_rns_peer> big-cpp)
+    add_test(NAME reticulum_lossy_sync COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/reticulum/interop.py $<TARGET_FILE:voidpalabra_rns_peer> lossy-sync)
+    add_test(NAME reticulum_lossy_big COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/reticulum/interop.py $<TARGET_FILE:voidpalabra_rns_peer> lossy-big)
+    set_tests_properties(reticulum_vectors reticulum_interop_py_server reticulum_interop_cpp_server
+      reticulum_big_py PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 150)
+    set_tests_properties(reticulum_sync reticulum_big_cpp PROPERTIES TIMEOUT 150)
+    # through a relay that drops and reorders datagrams: one device cannot test a
+    # real network, but it can test a bad one (tests/reticulum/interop.py)
+    set_tests_properties(reticulum_lossy_sync reticulum_lossy_big PROPERTIES TIMEOUT 200 LABELS lossy)
+  endif()
+endif()
+

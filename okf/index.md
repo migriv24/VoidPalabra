@@ -138,3 +138,14 @@ directly).
 **Palabra owns none of Core's vocabulary.** It does not redefine rune, mantle, or
 holiday; it defines only what it takes to remember, name, merge, store, and
 transmit them.
+
+## Networking: Reticulum (decided 2026-09-23)
+
+All device-to-device networking in the Void family runs over **Reticulum**, and
+Palabra is its Void translation: session frames ride Reticulum links from an
+optional companion target, `voidpalabra_reticulum`, while the core stays
+zero-dependency and pure. See [Reticulum](/concepts/reticulum.md)
+(`status:current` since 2026-09-24) for what was decided, what is built and
+proven against the Python reference, the ten microReticulum defects and their
+workarounds, the lossy-network tests, what Android and iOS allow, and the order
+of work.

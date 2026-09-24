@@ -1,5 +1,101 @@
 # Bundle Update Log
 
+## 2026-09-24 — Reticulum built: interop proven, and ten defects found by a bad network
+
+Steps 1 and 2 of [Reticulum](/concepts/reticulum.md) are done, and the page is
+now `status:current` (backed by `src/reticulum/node.cpp`). The author ruled:
+*"we probably can't talk to reticulum's author, so count that out entirely, and
+work around the bugs instead"*. Every defect below is worked around here, in our
+code or as a marked patch (`tools/patch_reticulum.py`, `VOIDPALABRA PATCH`).
+
+**Built.** `vendor/reticulum/` holds microReticulum and seven dependencies,
+pinned and listed with their licenses in `vendor/reticulum/VENDORED.md`.
+`voidpalabra_reticulum` adds `Node` (identity, UDP interfaces, links, packets
+and Resources, polled events) and `SyncLinks` (a Palabra session per link).
+THIRD-PARTY-NOTICES names the companion's components and Apache-2.0's
+conditions.
+
+**Proven against the official Python Reticulum (1.5.4)**, all in ctest:
+- destination hashes match;
+- an identity survives a restart;
+- links, packets and Resources work both ways, up to 400 KB;
+- a founder and a joiner converge on one document.
+
+**One device cannot test a real network, but it can test a bad one.**
+`interop.py` gained a seeded UDP relay that drops and reorders datagrams.
+Everything from defect 7 onward was invisible on a clean loopback:
+
+1. Windows portability (patches).
+2. Text-mode file I/O corrupted key files (patch: `O_BINARY`).
+3. The constructor resets the storage path (set it after).
+4. Relative store paths landed in the caller's folder (`RootedFileSystem`).
+5. File-backed stores are initialized only in transport mode, so a plain node
+   could never open a link (build with `RNS_PERSIST_*=0`).
+6. `Resource` sends nothing until `start()`, and no link reaches its callback
+   (call it; patch in `Resource::link()`).
+7. No link watchdog at all: no establishment timeout, no keepalives, no stale
+   links (`watchdog()` in `node.cpp`, the reference's rules and constants).
+8. A single-thread deadlock when a lost resource part is re-requested
+   (patch in `Transport::jobs`).
+9. A second outgoing Resource on a busy link is silently dropped (a per-link
+   outbox in `Node`).
+10. A lost Resource proof holds the link for about 50 s, because the reference's
+    cache re-request was left out (`Node` abandons a proof-less transfer after
+    max(2 s, 4 x RTT) when newer messages wait).
+
+**Accepted, not worked around:** no bz2 (a peer must send uncompressed), and
+single-segment Resources (16 MiB per message).
+
+**Measured at 10% loss over ten relay seeds:** all converge, in 2.2 to 63.7 s (58–85 s before defects 9 and 10 were handled). ctest: 25/25.
+
+**Later the same day, for Void Maiz's `RnsSession`:**
+- `UdpInterface::learn_peers` (unicast to every address heard from lately);
+- `Node::set_announce_data`;
+- a fix: a closed link was reported as "closed here" on the side that did NOT
+  close it. Reticulum names the side that closed (initiator or destination), so
+  which side we are decides. Found because the sync test's founder never heard
+  the joiner's goodbye and waited 15 s.
+
+The Reticulum test peer is now built only with `VOIDPALABRA_BUILD_TESTS`, so a
+consumer that embeds Palabra (Void Maiz) does not build it. microReticulum's
+compiled-in log ceiling is a cache variable (`VOIDPALABRA_RNS_LOG_LEVEL`,
+default 6), which also silences its `#warning` in every consumer. The companion
+cross-compiles for Android arm64 with the NDK, unchanged.
+
+**A gap in Reticulum's protocol itself:** a lost final handshake packet leaves
+one side's link up and the other's half-open for 6 minutes. The sync session is
+what notices (no hello within 20 s), so `SyncLinks` now closes a link whose
+session ended, and the host reopens.
+
+## 2026-09-23 — Reticulum is the family's network, and Palabra is its Void translation
+
+Decided by the author in a Void Hormiga session: *"let's just use reticulum for
+everything! all our netoworking needs, with palabra as its void based
+translation!"* A separate cryptography sibling, Void Snape, was founded and
+archived the same day. Its research moved into
+[Reticulum](/concepts/reticulum.md) (`status:planned`).
+
+**Nothing in Palabra's rulings is reversed.** The core stays zero-dependency
+and pure. Reticulum lives in an optional companion target,
+`voidpalabra_reticulum`. Session frames ride Reticulum links (transports are
+dumb byte pipes). A link's proven identity answers the `sign` / `verify` hooks
+(hooks, not primitives). A Reticulum identity is the two-key shape §6.1 finding
+2 already required. Palabra still opens no socket: interfaces come from the
+host.
+
+**Measured today, in a scratch clone of microReticulum at `40fa628`:**
+- the host drives its I/O (`send_outgoing`, `handle_incoming`,
+  `Reticulum::loop()`);
+- Resources are built, while Ratchets and Channel/Buffer are not;
+- it has no AutoInterface;
+- `Transport` is static, so one Reticulum per process;
+- **it builds on Windows with MinGW after four small portability fixes**;
+- two of its dependencies are fetched from forks at an unpinned `master`.
+
+**The order:** vendor it pinned; frames over links; Void Maiz's sockets as
+interfaces; Void Hormiga re-implements its member sharing; then phones through
+an always-on node.
+
 ## 2026-09-20 — concurrent structure: every scenario has an answer, and none needs coordination
 
 Message received: `MESSAGE_FOR_VOIDPALABRA_maiz-concurrent-rewrites-are-our-strongest-case-2026-09-20.md`.
