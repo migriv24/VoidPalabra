@@ -265,6 +265,27 @@ def test_vectors(peer, tmp):
     return None
 
 
+def test_entropy(peer, tmp):
+    """Defect 11 (okf/concepts/reticulum.md): Reticulum's generator is seeded from
+    the operating system before any key is made. No output test can prove a
+    generator unpredictable, so this checks the wiring and the one symptom an
+    unseeded generator shows: the node names its OS source, and two fresh nodes
+    started back to back (as close in time as two processes get) still differ."""
+    a = cpp(peer, "vector", os.path.join(tmp, "ent-a"), 0, 0)
+    b = cpp(peer, "vector", os.path.join(tmp, "ent-b"), 0, 0)
+    a.wait(30)
+    b.wait(30)
+    if a.result() != "ok" or b.result() != "ok":
+        dump(a, b)
+        return "a node did not start"
+    if not a.value("ENTROPY"):
+        dump(a)
+        return "the node did not report an operating-system entropy source"
+    if a.value("PUB") == b.value("PUB"):
+        return "two fresh nodes made the same identity"
+    return None
+
+
 def test_pair(server, client, stop_server=True, wait=60):
     client.wait(wait)
     if stop_server:
@@ -436,7 +457,7 @@ def test_sync(peer, tmp):
     return None
 
 
-TESTS = {"vectors": test_vectors, "py-echo": test_py_echo, "cpp-echo": test_cpp_echo, "sync": test_sync,
+TESTS = {"vectors": test_vectors, "entropy": test_entropy, "py-echo": test_py_echo, "cpp-echo": test_cpp_echo, "sync": test_sync,
          "big-py": test_big_py, "big-cpp": test_big_cpp, "lossy-sync": test_lossy_sync,
          "lossy-big": test_lossy_big}
 NEEDS_RNS = {"vectors", "py-echo", "cpp-echo", "big-py"}

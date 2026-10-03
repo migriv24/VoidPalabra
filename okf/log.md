@@ -1,5 +1,63 @@
 # Bundle Update Log
 
+## 2026-10-01 — `crypto.hpp`: a Reticulum identity's operations without a node
+
+**Edited by a Void Verguenza session, under the author's grant.** `include/voidpalabra/crypto.hpp`
+(in the Reticulum companion; the core links none of it): generate an identity, derive its
+public key and hash, sign, verify, encrypt to an identity (Reticulum's own
+`Identity.encrypt`), decrypt, tokens under a given key, SHA-256, random bytes, wipe.
+
+- **Stateless**: every call takes its keys, so no `Node` or network is needed, and a CLI
+  and an application on one device can both sign while only one runs the node.
+- **Plaintext into caller-owned buffers**: `decrypt` and `token_decrypt` write into memory
+  the caller allocated (and can lock and wipe). The copies this file makes are wiped;
+  microReticulum's internal copies are not reachable, and the header says so.
+- **Seeding shared**: `src/reticulum/rng.cpp` seeds the generator from the operating
+  system once, for `Node` and `crypto` alike (defect 11), whichever comes first.
+- **Tested**: `reticulum_crypto` (round trips; wrong keys, changed bytes and short buffers
+  refused; SHA-256 against FIPS 180-4).
+
+Its first client is Void Verguenza (`../VoidVerguenza`), whose crypto port it meets.
+
+## 2026-10-01 — Reticulum's random generator, seeded from the operating system (defect 11)
+
+**Edited by a Void Verguenza session, under the author's grant** (*"also yes you can
+edit palabra if youd like"*, 2026-10-01; recorded in Verguenza's log).
+
+**Found by reading.** The vendored Crypto library's `RNG` reads hardware generators on
+Arduino, ESP32 and nRF52 and nothing anywhere else. On Windows, Linux, macOS and the
+Android NDK it starts from fixed constants and the compile time; only a 32-bit
+microsecond clock value varies per rekey. microReticulum's `RNG.addNoiseSource` is
+commented out. Worse in our own code: `Node::start` made a new identity before
+constructing Reticulum, so the first `RNG.rand` initialized the generator lazily, from
+constants alone. Every identity key and every link's ephemeral key came from it.
+Estimated (not measured): guessable by anyone who can estimate a machine's uptime. No
+test could have caught it, because an unseeded generator still gives different output
+on each run; the founding tests were right to pass.
+
+**Fixed without patching.** `src/reticulum/entropy.cpp` reads the OS generator
+(`BCryptGenRandom`, `getrandom` with a `/dev/urandom` fallback, `arc4random_buf`).
+`Node::start` now calls `RNG.begin` itself, stirs 64 bytes in, and only then loads or
+makes the identity, and it refuses to start if the OS gives nothing; `loop()` stirs
+again every 5 minutes. The order matters and is commented where it happens: `begin()`
+overwrites the state (a stir before it is lost) and returns early once run (so the
+constructor's own call is harmless). `Node::entropy_source()` names the source so an
+application that keeps secrets can check it.
+
+**Tested:** `reticulum_entropy` (no Python reference needed): the node names its
+source, and two fresh nodes started together differ. The full suite, 26 of 26,
+including interop with the Python reference and the lossy-network tests.
+
+**Existing identities.** An identity already made by an unseeded node keeps its weak
+keys; this fix only makes new keys strong. Hormiga and Maiz devices that created
+identities before this should be given new ones (delete the `identity` file in the
+node's storage folder; peers will learn the new one from its announces). Not done
+automatically: replacing a device's identity is the application's decision.
+
+**Still open, seen at the same time:** `Token::verify_hmac` compares MACs with an
+early-exit comparison, and `Cryptography::randomnum()` repeats one byte four times.
+Listed in `vendor/reticulum/VENDORED.md`.
+
 ## 2026-09-24 — Reticulum built: interop proven, and ten defects found by a bad network
 
 Steps 1 and 2 of [Reticulum](/concepts/reticulum.md) are done, and the page is

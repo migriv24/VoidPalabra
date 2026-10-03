@@ -13,7 +13,7 @@
  *   RESULT ok | RESULT fail <why>          the verdict
  *
  * Roles:
- *   vector        start, print PUB/IDENT/DEST, exit. The harness checks DEST
+ *   vector        start, print PUB/IDENT/DEST/ENTROPY, exit. The harness checks DEST
  *                 against the Python reference's hash of the same public key.
  *   client        wait for an announce, open a link, send a small message (one
  *                 packet) and a large one (a Resource), and require both echoed
@@ -141,6 +141,9 @@ int main(int argc, char** argv) {
     say("PUB " + node.public_key());
     say("IDENT " + node.identity());
     say("DEST " + node.destination());
+    // which OS generator seeded Reticulum's; empty means start() should have refused
+    if (Node::entropy_source().empty()) return fail("no operating-system entropy source");
+    say("ENTROPY " + Node::entropy_source());
     if (node.destination() != Node::destination_hash(node.public_key(), o.app_name, o.aspects))
         return fail("our own destination hash disagrees with destination_hash()");
     if (role == "vector") {

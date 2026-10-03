@@ -17,8 +17,10 @@
  * It is not a patch to the vendored source; see okf/concepts/reticulum.md. */
 #include "voidpalabra/reticulum.hpp"
 
+#include "entropy.hpp"
 #include "rooted_fs.hpp"
 #include "udp.hpp"
+
 
 #include <microReticulum/Destination.h>
 #include <microReticulum/Identity.h>
@@ -33,6 +35,7 @@
 #include <microStore/FileSystem.h>
 
 #include <algorithm>
+#include <chrono>
 #include <exception>
 #include <filesystem>
 #include <map>
@@ -52,6 +55,7 @@ std::string string_of(const RNS::Bytes& b) { return std::string((const char*)b.d
 struct State {
     Options options;
     bool started = false;
+    std::chrono::steady_clock::time_point last_stir{}; // see seed_rng()
     std::unique_ptr<microStore::FileSystem> filesystem;
     std::unique_ptr<RNS::Reticulum> reticulum;
     RNS::Identity identity{RNS::Type::NONE};
@@ -356,7 +360,21 @@ RNS::LogLevel level_of(int n) {
     return RNS::LOG_TRACE;
 }
 
+/* Seed Reticulum's generator from the operating system (defect 11; the order and
+ * why it matters are in entropy.hpp). `first` is Node::start, which must seed
+ * BEFORE the identity is loaded or made: the old code made the identity first, so
+ * the first RNG.rand() ran begin(0) lazily, from constants alone. Later calls come
+ * from loop(), every few minutes, so a node that runs for weeks keeps taking in
+ * fresh entropy. */
+bool seed_rng(bool first) {
+    const bool ok = first ? detail::ensure_rng_seeded() && detail::restir_rng() : detail::restir_rng();
+    if (ok) S().last_stir = std::chrono::steady_clock::now();
+    return ok;
+}
+
 } // namespace
+
+std::string Node::entropy_source() { return detail::os_entropy_source(); }
 
 Node& Node::instance() {
     static Node n;
@@ -376,6 +394,11 @@ bool Node::start(const Options& options, std::string* error) {
         return false;
     }
     try {
+        // before ANYTHING that could make a key: see seed_rng()
+        if (!seed_rng(true)) {
+            if (error) *error = "the operating system gave no random bytes; a node will not make keys without them";
+            return false;
+        }
         RNS::loglevel(level_of(options.log_level));
         std::error_code ec;
         fs::create_directories(options.storage_dir, ec);
@@ -448,6 +471,8 @@ void Node::loop() {
     State& s = S();
     if (!s.started) return;
     try {
+        if (std::chrono::steady_clock::now() - s.last_stir > std::chrono::minutes(5) && !seed_rng(false))
+            emit({Event::Type::error, "", "", "", "", "the operating system gave no random bytes to re-seed with"});
         s.reticulum->loop();
         watchdog();
         drain_outboxes();

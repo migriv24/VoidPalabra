@@ -143,6 +143,12 @@ public:
      * the Python reference. */
     static std::string destination_hash(const std::string& public_key_hex, const std::string& app_name,
                                         const std::string& aspects);
+    /* The operating system's generator that seeds Reticulum's before any key is
+     * made, and again every few minutes ("BCryptGenRandom", "getrandom",
+     * "arc4random_buf"). Empty on a platform with none, where `start` refuses.
+     * Exposed so an application that keeps secrets can check the wiring
+     * (okf/concepts/reticulum.md, defect 11). */
+    static std::string entropy_source();
 
 private:
     Node() = default;
