@@ -1,5 +1,16 @@
 # Bundle Update Log
 
+## 2026-10-04 — The OS entropy source builds for Android again
+
+**Edited by a Void Hormiga session, under the author's grant.** Building Void Hormiga's
+APK found that `src/reticulum/entropy.cpp` (defect 11, 2026-10-01) no longer compiled for
+Android: its Linux branch, which Android also took, calls `getrandom`, and bionic declares
+that only from API 28. Hormiga (and Interaction Combinators) build for API 26. Android now
+takes the Apple branch, `arc4random_buf`: bionic's own kernel-seeded generator, present at
+every API level, so nothing about the guarantee changes (the operating system's generator,
+never one of ours). `os_entropy_source()` says `arc4random_buf` there. Measured by Void
+Hormiga's arm64 build linking; no device run.
+
 ## 2026-10-01 — `crypto.hpp`: a Reticulum identity's operations without a node
 
 **Edited by a Void Verguenza session, under the author's grant.** `include/voidpalabra/crypto.hpp`
