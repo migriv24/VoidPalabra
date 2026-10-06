@@ -20,6 +20,7 @@
 #include "entropy.hpp"
 #include "rooted_fs.hpp"
 #include "udp.hpp"
+#include "pipe.hpp"
 
 
 #include <microReticulum/Destination.h>
@@ -38,6 +39,7 @@
 #include <chrono>
 #include <exception>
 #include <filesystem>
+#include <functional>
 #include <map>
 #include <memory>
 #include <deque>
@@ -60,7 +62,9 @@ struct State {
     std::unique_ptr<RNS::Reticulum> reticulum;
     RNS::Identity identity{RNS::Type::NONE};
     RNS::Destination destination{RNS::Type::NONE};
-    std::vector<RNS::Interface> interfaces;
+    std::map<std::string, RNS::Interface> interfaces;  // by name
+    std::map<std::string, std::shared_ptr<detail::PipeInterfaceImpl>> pipes;  // by name
+    std::map<std::string, RNS::Resource> incoming;  // link id hex -> a Resource arriving on it
     std::map<std::string, RNS::Link> links;       // link id hex -> link
     std::map<std::string, std::string> opened_to;  // link id hex -> destination hex (links WE opened)
     std::set<std::string> awaiting_path;           // destination hex
@@ -104,6 +108,7 @@ void on_packet(const RNS::Bytes& plaintext, const RNS::Packet& packet) {
 }
 
 void on_resource(const RNS::Resource& resource) {
+    S().incoming.erase(hex(resource.link().link_id()));
     if (resource.status() != RNS::Type::Resource::COMPLETE) {
         Event e;
         e.type = Event::Type::error;
@@ -157,12 +162,19 @@ void on_identified(const RNS::Link& link, const RNS::Identity& remote) {
     emit(std::move(e));
 }
 
+/* A large message began to arrive: kept for transfers(), so a slow link can
+ * show a bar (Bluetooth LE moves a database in minutes, not seconds). */
+void on_resource_started(const RNS::Resource& resource) {
+    S().incoming.insert_or_assign(hex(resource.link().link_id()), resource);
+}
+
 void wire_link(RNS::Link& link) {
     link.set_packet_callback(on_packet);
     link.set_link_closed_callback(on_closed);
     link.set_remote_identified_callback(on_identified);
     link.set_resource_strategy(RNS::Type::Link::ACCEPT_ALL);
     link.set_resource_concluded_callback(on_resource);
+    link.set_resource_started_callback(on_resource_started);
 }
 
 /* A peer opened a link to us. */
@@ -383,6 +395,38 @@ Node& Node::instance() {
 
 bool Node::started() const { return S().started; }
 
+namespace {
+
+/* Register an interface under its name, replacing one of the same name. */
+bool register_named(const std::string& name, std::shared_ptr<RNS::InterfaceImpl> impl, std::string* error,
+                    const std::function<std::string()>& why) {
+    State& s = S();
+    if (auto old = s.interfaces.find(name); old != s.interfaces.end()) {
+        RNS::Transport::deregister_interface(old->second);
+        old->second.stop();
+        s.interfaces.erase(old);
+        s.pipes.erase(name);
+    }
+    RNS::Interface iface(impl);
+    iface.mode(RNS::Type::Interface::MODE_GATEWAY);
+    RNS::Transport::register_interface(iface);
+    if (!iface.start()) {
+        RNS::Transport::deregister_interface(iface);
+        if (error) *error = "interface " + name + ": " + why();
+        return false;
+    }
+    s.interfaces.emplace(name, iface);
+    return true;
+}
+
+bool add_udp_now(const UdpInterface& u, std::string* error) {
+    auto impl = std::make_shared<detail::UdpInterfaceImpl>(u.name, u.listen_host, u.listen_port, u.forward_host,
+                                                           u.forward_port, u.broadcast, u.learn_peers);
+    return register_named(u.name, impl, error, [impl] { return impl->error(); });
+}
+
+} // namespace
+
 bool Node::start(const Options& options, std::string* error) {
     State& s = S();
     if (s.started) {
@@ -430,19 +474,8 @@ bool Node::start(const Options& options, std::string* error) {
             }
         }
 
-        for (const UdpInterface& u : options.udp) {
-            auto impl = std::make_shared<detail::UdpInterfaceImpl>(u.name, u.listen_host, u.listen_port,
-                                                                   u.forward_host, u.forward_port, u.broadcast, u.learn_peers);
-            std::shared_ptr<RNS::InterfaceImpl> base = impl;
-            RNS::Interface iface(base);
-            iface.mode(RNS::Type::Interface::MODE_GATEWAY);
-            RNS::Transport::register_interface(iface);
-            if (!iface.start()) {
-                if (error) *error = "interface " + u.name + ": " + impl->error();
-                return false;
-            }
-            s.interfaces.push_back(iface);
-        }
+        for (const UdpInterface& u : options.udp)
+            if (!add_udp_now(u, error)) return false;
 
         s.reticulum = std::make_unique<RNS::Reticulum>();
         /* AFTER construction, not before: the Reticulum constructor resets the
@@ -581,6 +614,134 @@ std::string Node::destination_hash(const std::string& public_key_hex, const std:
     pub.assignHex(public_key_hex.c_str());
     id.load_public_key(pub);
     return RNS::Destination::hash(id, app_name.c_str(), aspects.c_str()).toHex();
+}
+
+
+// ── interfaces added while running, pipes, transfers (2026-10-05) ────────────
+
+bool Node::add_udp(const UdpInterface& udp, std::string* error) {
+    if (!S().started) {
+        if (error) *error = "the node has not started";
+        return false;
+    }
+    try {
+        return add_udp_now(udp, error);
+    } catch (const std::exception& e) {
+        if (error) *error = std::string("add_udp: ") + e.what();
+        return false;
+    }
+}
+
+bool Node::add_pipe(const PipeInterface& pipe, std::string* error) {
+    State& s = S();
+    if (!s.started) {
+        if (error) *error = "the node has not started";
+        return false;
+    }
+    try {
+        auto impl = std::make_shared<detail::PipeInterfaceImpl>(pipe.name, pipe.bitrate);
+        if (!register_named(pipe.name, impl, error, [] { return std::string("did not start"); })) return false;
+        s.pipes[pipe.name] = impl;
+        return true;
+    } catch (const std::exception& e) {
+        if (error) *error = std::string("add_pipe: ") + e.what();
+        return false;
+    }
+}
+
+bool Node::remove_interface(const std::string& name) {
+    State& s = S();
+    auto it = s.interfaces.find(name);
+    if (it == s.interfaces.end()) return false;
+    try {
+        RNS::Transport::deregister_interface(it->second);
+        it->second.stop();
+    } catch (...) {
+    }
+    s.interfaces.erase(it);
+    s.pipes.erase(name);
+    return true;
+}
+
+std::vector<std::string> Node::interface_names() const {
+    std::vector<std::string> v;
+    for (const auto& [name, _] : S().interfaces) v.push_back(name);
+    return v;
+}
+
+void Node::pipe_in(const std::string& name, const std::string& packet) {
+    auto it = S().pipes.find(name);
+    if (it != S().pipes.end()) it->second->push_in(packet);
+}
+
+std::vector<std::string> Node::pipe_out(const std::string& name) {
+    auto it = S().pipes.find(name);
+    return it == S().pipes.end() ? std::vector<std::string>{} : it->second->take_out();
+}
+
+std::vector<Transfer> Node::transfers() const {
+    std::vector<Transfer> out;
+    const State& s = S();
+    auto add = [&](const std::string& link, const RNS::Resource& r, bool incoming) {
+        const auto st = r.status();
+        if (st >= RNS::Type::Resource::COMPLETE || st == RNS::Type::Resource::FAILED) return;
+        Transfer t;
+        t.link = link;
+        t.incoming = incoming;
+        t.total = r.get_data_size();
+        if (t.total == 0) t.total = r.total_size();
+        t.done = (std::size_t)((double)t.total * std::clamp((double)r.get_progress(), 0.0, 1.0));
+        out.push_back(t);
+    };
+    for (const auto& [link, f] : s.in_flight) add(link, f.resource, false);
+    for (const auto& [link, r] : s.incoming) add(link, r, true);
+    return out;
+}
+
+// ── HDLC framing, as Reticulum's TCP and serial interfaces use ───────────────
+
+std::string Hdlc::frame(const std::string& packet) {
+    std::string out;
+    out.reserve(packet.size() + 8);
+    out.push_back((char)FLAG);
+    for (unsigned char c : packet) {
+        if (c == FLAG || c == ESC) {
+            out.push_back((char)ESC);
+            out.push_back((char)(c ^ ESC_MASK));
+        } else {
+            out.push_back((char)c);
+        }
+    }
+    out.push_back((char)FLAG);
+    return out;
+}
+
+std::vector<std::string> Hdlc::Decoder::feed(const std::string& bytes) {
+    std::vector<std::string> out;
+    for (unsigned char c : bytes) {
+        if (c == FLAG) {
+            if (in_ && !cur_.empty()) out.push_back(std::move(cur_));
+            cur_.clear();
+            in_ = true; // a FLAG both ends one frame and begins the next
+            esc_ = false;
+            continue;
+        }
+        if (!in_) continue;
+        if (esc_) {
+            c ^= ESC_MASK;
+            esc_ = false;
+        } else if (c == ESC) {
+            esc_ = true;
+            continue;
+        }
+        if (cur_.size() >= max_) { // lost a FLAG somewhere: drop until the next one
+            cur_.clear();
+            in_ = false;
+            continue;
+        }
+        cur_.push_back((char)c);
+    }
+    return out;
 }
 
 } // namespace voidpalabra::reticulum

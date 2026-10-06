@@ -65,6 +65,50 @@ struct UdpInterface {
     bool learn_peers = false;
 };
 
+/* ── A PIPE: an interface whose bytes the HOST moves (2026-10-05) ──────────────
+ * Void Hormiga's phones need Reticulum over radios this library cannot open:
+ * Bluetooth LE, Wi-Fi Direct, a serial line. The host owns the radio; the node
+ * owns Reticulum. A pipe is the seam: the host hands the node every Reticulum
+ * packet that arrived (`pipe_in`) and sends every packet the node wants to send
+ * (`pipe_out`). Each item is ONE whole packet. A host carrying them over a byte
+ * stream frames them with `Hdlc` below, which is what Reticulum's own serial
+ * and TCP interfaces do, so a stream from this node is a stream the reference
+ * implementation could read.
+ *
+ * `bitrate` is what the link really carries, in bits per second. Reticulum
+ * sizes its timeouts from it, so a Bluetooth link declared as fast as a LAN
+ * gives up on handshakes that are merely slow. */
+struct PipeInterface {
+    std::string name = "pipe";
+    std::uint32_t bitrate = 62500; // ~8 KB/s: a cautious Bluetooth LE guess
+};
+
+/* HDLC-like framing for packets on a byte stream, as Reticulum's TCP and serial
+ * interfaces frame them: FLAG, the packet with FLAG and ESC escaped, FLAG. */
+struct Hdlc {
+    static constexpr unsigned char FLAG = 0x7E, ESC = 0x7D, ESC_MASK = 0x20;
+    static std::string frame(const std::string& packet);
+    /* Feed bytes as they arrive (any split); whole packets come out. A frame
+     * longer than `max` is dropped (a stream that lost a FLAG resynchronizes at
+     * the next one). */
+    class Decoder {
+    public:
+        explicit Decoder(std::size_t max = 2048) : max_(max) {}
+        std::vector<std::string> feed(const std::string& bytes);
+    private:
+        std::string cur_;
+        bool in_ = false, esc_ = false;
+        std::size_t max_;
+    };
+};
+
+/* A large message moving on a link, for a progress bar. */
+struct Transfer {
+    std::string link;
+    bool incoming = false;
+    std::size_t done = 0, total = 0; // bytes
+};
+
 struct Options {
     /* Where the identity and Reticulum's own state live. Created if missing.
      * One per device, never shared between two running nodes. */
@@ -134,6 +178,21 @@ public:
 
     /* Everything that happened since the last poll, in order. */
     void poll(std::vector<Event>& out);
+
+    /* ── interfaces added and removed while running (2026-10-05) ──
+     * A phone's radios come and go: a Wi-Fi Direct group forms (a UDP
+     * interface on its address appears) and dissolves; a Bluetooth peer
+     * connects (a pipe appears). A name replaces the interface of that name. */
+    bool add_udp(const UdpInterface& udp, std::string* error = nullptr);
+    bool add_pipe(const PipeInterface& pipe, std::string* error = nullptr);
+    bool remove_interface(const std::string& name);
+    std::vector<std::string> interface_names() const;
+    /* A pipe's traffic: packets that arrived, packets to send. */
+    void pipe_in(const std::string& name, const std::string& packet);
+    std::vector<std::string> pipe_out(const std::string& name);
+
+    /* Large messages moving now, both ways (a Resource each). */
+    std::vector<Transfer> transfers() const;
 
     /* The largest message that goes as one packet on a link. */
     static std::size_t packet_limit();

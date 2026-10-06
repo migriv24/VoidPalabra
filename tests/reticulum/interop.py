@@ -457,9 +457,53 @@ def test_sync(peer, tmp):
     return None
 
 
+def free_tcp_port():
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.bind(("127.0.0.1", 0))
+    p = s.getsockname()[1]
+    s.close()
+    return p
+
+
+# A PIPE carried over local TCP, HDLC-framed and throttled to Bluetooth LE's
+# order of speed (2026-10-05): the host-driven interface a phone's radio uses.
+PIPE_BPS = os.environ.get("VP_PIPE_BPS", "64000")
+
+
+def test_pipe_echo(peer, tmp):
+    port = free_tcp_port()
+    pipe = ("--bitrate", PIPE_BPS)
+    server = cpp(peer, "echo", os.path.join(tmp, "pipe-echo"), 0, 0, 90, ("--pipe-listen", str(port), *pipe))
+    time.sleep(0.5)
+    client = cpp(peer, "client", os.path.join(tmp, "pipe-client"), 0, 0, 80,
+                 ("--pipe-connect", str(port), "--large", "60000", *pipe))
+    err = test_pair(server, client, wait=90)
+    if err:
+        return err
+    if not any(l.startswith("TRANSFER ") for l in client.lines):
+        return "no TRANSFER line: Node::transfers() reported nothing while 60 KB moved"
+    return None
+
+
+def test_pipe_sync(peer, tmp):
+    port = free_tcp_port()
+    pipe = ("--bitrate", PIPE_BPS)
+    founder = cpp(peer, "sync-founder", os.path.join(tmp, "pipe-founder"), 0, 0, 80, ("--pipe-listen", str(port), *pipe))
+    time.sleep(0.5)
+    joiner = cpp(peer, "sync-joiner", os.path.join(tmp, "pipe-joiner"), 0, 0, 80, ("--pipe-connect", str(port), *pipe))
+    joiner.wait(90)
+    founder.wait(20)
+    if joiner.result() != "ok" or founder.result() != "ok":
+        dump(founder, joiner)
+        return f"founder: {founder.result()}; joiner: {joiner.result()}"
+    if founder.value("VERSION") != joiner.value("VERSION"):
+        return "the two devices hold different documents over the pipe"
+    return None
+
+
 TESTS = {"vectors": test_vectors, "entropy": test_entropy, "py-echo": test_py_echo, "cpp-echo": test_cpp_echo, "sync": test_sync,
          "big-py": test_big_py, "big-cpp": test_big_cpp, "lossy-sync": test_lossy_sync,
-         "lossy-big": test_lossy_big}
+         "lossy-big": test_lossy_big, "pipe-echo": test_pipe_echo, "pipe-sync": test_pipe_sync}
 NEEDS_RNS = {"vectors", "py-echo", "cpp-echo", "big-py"}
 
 

@@ -24,12 +24,29 @@
  *                 rune of its own and waits for it to be acknowledged.
  *
  *   peer <role> --dir D --listen P --forward Q [--seconds N] [--large BYTES] [--lossy 1] [--log 0-5]
+ *
+ * A PIPE instead of UDP (2026-10-05): `--pipe-listen PORT` or `--pipe-connect
+ * PORT` carries the node's packets over a local TCP stream, HDLC-framed, as a
+ * host carries them over Bluetooth; `--bitrate BPS` throttles what is written,
+ * so a test sees a Bluetooth-slow link; the client then prints TRANSFER lines
+ * (Node::transfers) while its large message moves.
  */
 #include "voidpalabra/reticulum.hpp"
 #include "voidpalabra/canonical.hpp"
 #include "voidpalabra/replica.hpp"
 
 #include "cJSON.h"
+
+#ifdef _WIN32
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#else
+#include <arpa/inet.h>
+#include <fcntl.h>
+#include <netinet/in.h>
+#include <sys/socket.h>
+#include <unistd.h>
+#endif
 
 #include <chrono>
 #include <cstdio>
@@ -117,6 +134,86 @@ std::size_t rune_count(const Replica& r) {
 
 } // namespace
 
+/* A pipe carried over local TCP: the stand-in for a radio (see the header). */
+struct TcpPipe {
+    std::intptr_t sock = -1, listener = -1;
+    Hdlc::Decoder decoder;
+    std::string out;          // framed bytes waiting to be written
+    double bitrate = 0;       // bits per second; 0 = unthrottled
+    double allowance = 0;     // bytes we may write now
+    Clock::time_point last = Clock::now();
+
+    static void nonblock(std::intptr_t s) {
+#ifdef _WIN32
+        u_long on = 1;
+        ioctlsocket((SOCKET)s, FIONBIO, &on);
+#else
+        fcntl((int)s, F_SETFL, fcntl((int)s, F_GETFL) | O_NONBLOCK);
+#endif
+    }
+    bool listen_on(int port) {
+        listener = (std::intptr_t)::socket(AF_INET, SOCK_STREAM, 0);
+        int yes = 1;
+        setsockopt((decltype(::socket(0, 0, 0)))listener, SOL_SOCKET, SO_REUSEADDR, (const char*)&yes, sizeof yes);
+        sockaddr_in a{};
+        a.sin_family = AF_INET;
+        a.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+        a.sin_port = htons((unsigned short)port);
+        if (::bind((decltype(::socket(0, 0, 0)))listener, (sockaddr*)&a, sizeof a) != 0) return false;
+        ::listen((decltype(::socket(0, 0, 0)))listener, 1);
+        nonblock(listener);
+        return true;
+    }
+    bool connect_to(int port) {
+        sock = (std::intptr_t)::socket(AF_INET, SOCK_STREAM, 0);
+        sockaddr_in a{};
+        a.sin_family = AF_INET;
+        a.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+        a.sin_port = htons((unsigned short)port);
+        for (int i = 0; i < 100; ++i) { // the other side may not be listening yet
+            if (::connect((decltype(::socket(0, 0, 0)))sock, (sockaddr*)&a, sizeof a) == 0) {
+                nonblock(sock);
+                return true;
+            }
+            std::this_thread::sleep_for(std::chrono::milliseconds(50));
+        }
+        return false;
+    }
+    void pump(Node& node, const std::string& name) {
+        if (sock < 0 && listener >= 0) {
+            const auto s = ::accept((decltype(::socket(0, 0, 0)))listener, nullptr, nullptr);
+#ifdef _WIN32
+            if (s != INVALID_SOCKET) { sock = (std::intptr_t)s; nonblock(sock); }
+#else
+            if (s >= 0) { sock = (std::intptr_t)s; nonblock(sock); }
+#endif
+        }
+        for (auto& p : node.pipe_out(name)) out += Hdlc::frame(p);
+        if (sock < 0) return;
+        const auto now = Clock::now();
+        const double dt = std::chrono::duration<double>(now - last).count();
+        last = now;
+        std::size_t can = out.size();
+        if (bitrate > 0) {
+            allowance = std::min(allowance + dt * bitrate / 8.0, bitrate / 8.0); // at most a second banked
+            can = std::min(can, (std::size_t)allowance);
+        }
+        if (can > 0) {
+            const int n = (int)::send((decltype(::socket(0, 0, 0)))sock, out.data(), (int)can, 0);
+            if (n > 0) {
+                out.erase(0, (std::size_t)n);
+                allowance -= n;
+            }
+        }
+        char buf[4096];
+        for (;;) {
+            const int n = (int)::recv((decltype(::socket(0, 0, 0)))sock, buf, sizeof buf, 0);
+            if (n <= 0) break;
+            for (auto& packet : decoder.feed(std::string(buf, (std::size_t)n))) node.pipe_in(name, packet);
+        }
+    }
+};
+
 int main(int argc, char** argv) {
     if (argc < 2) {
         std::fprintf(stderr, "usage: peer <vector|client|echo|sync-founder|sync-joiner> --dir D --listen P --forward Q [--seconds N]\n");
@@ -132,7 +229,14 @@ int main(int argc, char** argv) {
     u.listen_port = (std::uint16_t)std::atoi(arg(argc, argv, "--listen", "0").c_str());
     u.forward_host = "127.0.0.1";
     u.forward_port = (std::uint16_t)std::atoi(arg(argc, argv, "--forward", "0").c_str());
-    if (role != "vector") o.udp.push_back(u);
+    const int pipe_listen = std::atoi(arg(argc, argv, "--pipe-listen", "0").c_str());
+    const int pipe_connect = std::atoi(arg(argc, argv, "--pipe-connect", "0").c_str());
+    const bool piped = pipe_listen || pipe_connect;
+    if (role != "vector" && !piped) o.udp.push_back(u);
+#ifdef _WIN32
+    WSADATA wsa;
+    WSAStartup(MAKEWORD(2, 2), &wsa);
+#endif
     const long long budget_ms = 1000LL * std::atoi(arg(argc, argv, "--seconds", "30").c_str());
 
     Node& node = Node::instance();
@@ -150,6 +254,21 @@ int main(int argc, char** argv) {
         say("RESULT ok");
         return 0;
     }
+    TcpPipe pipe;
+    pipe.bitrate = std::atof(arg(argc, argv, "--bitrate", "0").c_str());
+    if (piped) {
+        PipeInterface pi;
+        pi.name = "radio";
+        if (pipe.bitrate > 0) pi.bitrate = (std::uint32_t)pipe.bitrate;
+        if (!node.add_pipe(pi, &why)) return fail("add_pipe: " + why);
+        if (pipe_listen && !pipe.listen_on(pipe_listen)) return fail("pipe: could not listen");
+        if (pipe_connect && !pipe.connect_to(pipe_connect)) return fail("pipe: could not connect");
+    }
+    long long next_transfer_say = 0;
+    auto loop_all = [&] {
+        node.loop();
+        if (piped) pipe.pump(node, "radio");
+    };
 
     // ── sync roles: a replica, sessions per link ─────────────────────────────
     Replica replica;
@@ -176,8 +295,13 @@ int main(int argc, char** argv) {
     int echoed = 0, reopened = 0;
 
     while (ms_since(t0) < budget_ms) {
-        node.loop();
+        loop_all();
         const long long now = ms_since(t0);
+        if (role == "client" && now >= next_transfer_say) {
+            for (const auto& t : node.transfers())
+                say(std::string("TRANSFER ") + (t.incoming ? "in " : "out ") + std::to_string(t.done) + "/" + std::to_string(t.total));
+            next_transfer_say = now + 500;
+        }
         if (now >= next_announce && (role == "echo" || founder)) {
             node.announce();
             next_announce = now + 1000;
@@ -255,7 +379,7 @@ int main(int argc, char** argv) {
             // stay a little so the founder's acknowledgement is not cut short
             const auto t1 = Clock::now();
             while (ms_since(t1) < 1500) {
-                node.loop();
+                loop_all();
                 std::vector<Event> ev;
                 node.poll(ev);
                 for (const Event& e : ev) sync->handle(e, ms_since(t0));
@@ -277,7 +401,7 @@ int main(int argc, char** argv) {
             bool left = false;
             long long next = 0;
             while (!left && ms_since(t1) < 15000) {
-                node.loop();
+                loop_all();
                 if (ms_since(t1) >= next) {
                     node.announce();
                     next = ms_since(t1) + 1000;

@@ -98,6 +98,22 @@ No microReticulum type appears in it.
   That is Void Maiz's "beacon out, unicast back" (Android drops incoming
   broadcast but never unicast), and it is how one node answers many on a single
   machine. `set_announce_data` changes what announces carry while the node runs.
+- **Pipes, and interfaces that come and go** (2026-10-05, for Void Hormiga's
+  phones). A `PipeInterface` is an interface whose packets the HOST carries:
+  the node hands out what it wants sent (`pipe_out`) and takes what arrived
+  (`pipe_in`), one whole packet each. That is how Bluetooth LE, Wi-Fi Direct or
+  a serial line carry Reticulum without this library opening them. `bitrate`
+  declares the link's real speed, because Reticulum sizes its timeouts from it
+  and a Bluetooth link declared as fast as a LAN gives up on handshakes that are
+  merely slow. A host carrying packets over a byte stream frames them with
+  `Hdlc` (FLAG, escaped packet, FLAG), as Reticulum's own TCP and serial
+  interfaces do, so the stream is one the reference could read. `add_udp`,
+  `add_pipe` and `remove_interface` change interfaces while the node runs (a
+  Wi-Fi Direct group forms and dissolves; a Bluetooth peer connects).
+  `transfers()` lists every Resource moving, both ways, with bytes done and
+  total: a progress bar's numbers. Void Maiz's `voidmaiz/rnsradio.hpp` is the
+  one user: it makes each LE peer a pipe and a Wi-Fi Direct group a UDP
+  interface.
 - **`SyncLinks`**: one `sync::Session` per link. Each Palabra frame goes as one
   whole message, so no stream framing is needed. A session that ends closes its
   link.
@@ -155,6 +171,7 @@ tests that need it SKIP when it is absent). Every peer is its own process on
 | `reticulum_big_py` / `_big_cpp` | a 400 KB Resource, past one advertisement's hashmap |
 | `reticulum_sync` | a founder and a joiner converge on one document over a link, with a change from each side |
 | `reticulum_lossy_sync` / `_lossy_big` (label `lossy`) | the same through **a relay that drops and reorders datagrams** (10% for sync, 5% for a 100 KB Resource) |
+| `reticulum_pipe_echo` / `_pipe_sync` | two nodes with **no UDP at all**, whose only interface is a pipe carried over a local TCP stream, HDLC-framed and throttled to 64 kbit/s (Bluetooth LE's order): a 60 KB Resource echoed, and a founder and joiner converging |
 
 **One device cannot test a real network, but it can test a bad one.** Every
 defect from 7 onward was invisible on a clean loopback and found by the relay.

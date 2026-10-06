@@ -1,5 +1,35 @@
 # Bundle Update Log
 
+## 2026-10-05 — Pipes: Reticulum over radios this library cannot open
+
+**Edited by a Void Hormiga session, under the author's grant.** The author asked for
+phones that share a database with no Wi-Fi in common, over Bluetooth LE and Wi-Fi Direct,
+with Reticulum on top, and never through a hotspot. The radios are Void Maiz's to open;
+Reticulum is ours. So `voidpalabra_reticulum` gained the seam between them
+([reticulum](concepts/reticulum.md), "What is built"):
+
+- **`PipeInterface`**: an interface whose packets the host carries (`pipe_in`,
+  `pipe_out`), with a declared `bitrate` so Reticulum's timeouts wait as long as a slow
+  link needs.
+- **`Hdlc`**: packets framed on a byte stream as Reticulum's own TCP and serial
+  interfaces frame them; a decoder that survives any split and resynchronizes at the next
+  FLAG.
+- **`add_udp`, `add_pipe`, `remove_interface`, `interface_names`** while running.
+- **`transfers()`**: every Resource moving, both ways, for progress bars (incoming
+  Resources are now tracked from their advertisement).
+
+Tests: `reticulum_pipe_echo` and `reticulum_pipe_sync` run two nodes with no UDP at all
+over a throttled pipe. Suite 29/29.
+
+**A finding for this repository, from Hormiga's measurement.** A session sends a member's
+shareable state whole when it starts (`Kind::doc`). For Hormiga's synthetic Cat Colony a
+one-field edit is a 600 KB frame, on the LAN as on a radio: a hundred seconds of Bluetooth
+LE. Hormiga now deflates frames on its radio links (70 KB on the air), which is a
+workaround at the wrong layer. Two ways to fix it here, recorded for the author as
+Hormiga's Q104: compression as a frame flag Palabra owns, and delta states (send a peer
+only what joined in since the digest it last acknowledged). Not decided; nothing changed
+in the session.
+
 ## 2026-10-04 — The OS entropy source builds for Android again
 
 **Edited by a Void Hormiga session, under the author's grant.** Building Void Hormiga's
