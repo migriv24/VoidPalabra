@@ -70,3 +70,12 @@ __pycache__/
 # where a reader should find it. Void Hormiga keeps none of them in its public
 # tree for the same reason.
 MESSAGE_FOR_*.md
+
+# Never published (Void Mago's Iscariot): secrets, correspondence between
+# agents, and the private-terms list.
+.env
+git_secret.txt
+KEEP_HIDDEN.txt
+*.pem
+REPORT_FROM_*.md
+.private-terms
